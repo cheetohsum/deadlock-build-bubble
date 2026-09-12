@@ -151,8 +151,8 @@
 /* Animations off (cog menu): the CSS transitions finish at once too. */
 .BBRoot.BBNoAnim { transition-duration: 0s; }
 .BBNoAnim .BBBuildRow, .BBNoAnim .BBBuildPicker { transition-duration: 0s; }
-.BBBuildLine { flow-children: right; height: 22px; transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
-.BBBuildPicker:hover .BBBuildLine { transform: rotateZ( 2deg ); }
+/* No tilt here: the name sits in a clipped box, so a tilt pushed its ends out of sight. */
+.BBBuildLine { flow-children: right; height: 22px; }
 .BBBuildName {
   max-width: 290px;
   vertical-align: center;
@@ -552,7 +552,7 @@
 /* Hover: brighter fill, white label and a white stroke along the bottom. */
 .BBTab:hover { background-color: #ffffff1f; border-bottom: 2px solid #ffffff; }
 .BBTab:hover .BBTabText { color: #ffffff; }
-.BBTab.Active { background-color: #96dbd022; border-bottom: 2px solid #96dbd0; }
+.BBTab.Active { background-color: #e3d3b633; border-bottom: 2px solid #e9dcc6; }
 .BBTabText {
   horizontal-align: center;
   vertical-align: center;

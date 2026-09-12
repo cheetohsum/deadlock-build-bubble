@@ -89,3 +89,7 @@ mod overrides `hud.xml`, so it has to match the current stock HUD (fetched from 
 
 Settings live in `config.json` (created on first save). `pakNumber` defaults to 87; change it if another mod uses
 that slot.
+
+## License
+
+[Apache License 2.0](LICENSE). Deadlock and its art belong to Valve; builds and stats come from deadlock-api.com.

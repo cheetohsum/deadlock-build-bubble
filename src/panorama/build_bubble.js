@@ -2,7 +2,7 @@
 // BB_DATA and BB_SETTINGS are prepended by tools/build.js from tools/gen-data.js output.
 'use strict';
 (function () {
-  var VERSION = '0.10.0';
+  var VERSION = '0.10.1';
   var TAG = '[BuildBubble] ';
   var SOURCES = ['standard', 'pro', 'winrate'];
   var SOURCE_LABEL = { standard: 'Community', pro: 'Pro', winrate: 'Top WR' };
@@ -137,14 +137,25 @@
     setStyle(box, 'position', Math.round(Math.max(6, x)) + 'px ' + Math.round(Math.max(6, y)) + 'px 0px');
     box.AddClass('BBTipShown');
   }
-  function showTip(p, text) {
+  // delay (seconds): show only once the mouse has rested that long; moving off cancels it.
+  function showTip(p, text, delay) {
     var box = tipPanel();
     tip.owner = p;
     var seq = ++tip.seq;
-    tip.label.text = safeText(text);
     box.RemoveClass('BBTipShown');
-    $.Schedule(0, function () { placeTip(p, seq); });
-    $.Schedule(0.05, function () { placeTip(p, seq); });
+    var show = function () {
+      if (seq !== tip.seq) return;
+      tip.label.text = safeText(text);
+      $.Schedule(0, function () { placeTip(p, seq); });
+      $.Schedule(0.05, function () { placeTip(p, seq); });
+    };
+    if (delay) $.Schedule(delay, show); else show();
+  }
+  // Full build names wait a moment, so they don't pop up every time the mouse passes over.
+  var NAME_TIP_DELAY = 1.1;
+  function slowTooltip(p, text) {
+    p.SetPanelEvent('onmouseover', function () { showTip(p, text, NAME_TIP_DELAY); });
+    p.SetPanelEvent('onmouseout', function () { hideTip(p); });
   }
   function hideTip(p) {
     if (p && tip.owner !== p) return;
@@ -1390,7 +1401,7 @@
       var was = oldRows ? oldRows[rows.length] || {} : {};
       rows.push(row);
       var name = morphText(el('Panel', opt, 'BBOptNameBox'), 'BBBuildOptionName', row.name, oldRows ? was.name || '' : null);
-      if (b.name.length > OPTION_NAME_MAX) tooltip(name, b.name);
+      if (b.name.length > OPTION_NAME_MAX) slowTooltip(name, b.name);
       var stats = el('Panel', opt, 'BBBuildStats');
       if (row.favs) statSlot('favs', row.favs, 'Favourites').build(stats, was.favs);
       if (row.date) statSlot('cal', row.date, 'Last updated').build(stats, was.date);
@@ -1712,14 +1723,15 @@
     // Build line: the build name is a dropdown of the tab's other builds.
     ui.buildRow = el('Panel', titles, 'BBBuildRow');
     // The name line tilts on hover and its text takes a white shadow (strongest while the dropdown is open).
-    ui.buildPicker = el('Button', ui.buildRow, 'BBBuildPicker');
+    // A plain panel rather than a Button: the game draws its own outline around a hovered or focused Button.
+    ui.buildPicker = el('Panel', ui.buildRow, 'BBBuildPicker');
     var buildLine = el('Panel', ui.buildPicker, 'BBBuildLine');
     ui.buildPin = pinGlyph(buildLine, 'BBPinMark BBHeaderPin BBHidden');
     ui.buildName = el('Label', buildLine, 'BBBuildName', '');
     ui.buildCaret = el('Panel', buildLine, 'BBBuildCaret BBHidden');
     ui.buildPicker.SetPanelEvent('onmouseover', function () {
       drag.overControl++;
-      if (state.buildNameFull.length > BUILD_NAME_MAX) showTip(ui.buildPicker, state.buildNameFull);
+      if (state.buildNameFull.length > BUILD_NAME_MAX) showTip(ui.buildPicker, state.buildNameFull, NAME_TIP_DELAY);
     });
     ui.buildPicker.SetPanelEvent('onmouseout', function () {
       drag.overControl = Math.max(0, drag.overControl - 1);
