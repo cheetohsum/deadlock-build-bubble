@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bubble preview</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0a09; color: #fff; }
+  /* A stand-in for the game screen behind the bubble. */
+  #screen {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, #3a4a3a55, transparent 60%),
+      radial-gradient(ellipse at 75% 70%, #5a3f2155, transparent 55%),
+      linear-gradient(160deg, #1b1f1c, #0d0c0b 70%);
+  }
+  #shopMock {
+    position: absolute; inset: 0; display: none;
+    background: linear-gradient(90deg, #171513f2 0 58%, #0f0e0dcc 58% 100%);
+  }
+  #shopMock::before {
+    content: "SHOP"; position: absolute; left: 32px; top: 28px;
+    font: 600 28px "Bahnschrift SemiCondensed", sans-serif; letter-spacing: 3px; color: #cbbca6;
+  }
+  #shopMock .grid { position: absolute; left: 32px; top: 80px; width: 52%; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  #shopMock .grid i { height: 64px; border-radius: 6px; background: #ffffff0d; border-top: 3px solid var(--c); }
+  body.shop #shopMock { display: block; }
+  body.draft #screen::after {
+    content: "STREET BRAWL  -  DRAFT"; position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+    font: 600 34px "Bahnschrift SemiCondensed", sans-serif; letter-spacing: 4px; color: #ff9d3c; opacity: .6;
+  }
+  #hud { position: absolute; inset: 0; }
+  #hud > .pn-Panel:not(#BuildBubbleRoot):not(#BuildBubbleTip):not(.BBDragGhost) { display: none; }
+  /* The bubble's own tooltip and the drag ghost are placed by script (style.position -> left/top). */
+  #BuildBubbleTip, #hud > .BBDragGhost { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #BuildBubbleTip { z-index: 10001; line-height: 1.4; }
+  /* Panorama's collapse always wins; here a later flow-children rule (display: flex) could otherwise show the panel. */
+  .BBHidden { display: none !important; }
+  /* A morphing build-list name keeps its natural width (Panorama's width: fit-children). */
+  .BBOptNameBox .BBBuildOptionName { flex: 0 0 auto !important; min-width: auto !important; }
+  /* Panorama panels size to their content and stack; this base keeps the shim close to that. */
+  .pn { box-sizing: border-box; position: relative; flex: 0 0 auto; background-repeat: no-repeat; background-size: contain; background-position: center; }
+  .pn-Label { white-space: pre-wrap; }
+  /* Same slim cream scrollbar the in-game stylesheet gives the bubble body. */
+  .BBBody::-webkit-scrollbar { width: 6px; }
+  .BBBody::-webkit-scrollbar-track { background: #ffffff08; border-radius: 3px; margin: 4px 0; }
+  .BBBody::-webkit-scrollbar-thumb { background: #cbbca655; border-radius: 3px; min-height: 36px; }
+  .BBBody::-webkit-scrollbar-thumb:hover { background: #96dbd0aa; }
+  .BBBody::-webkit-scrollbar-thumb:active { background: #96dbd0; }
+  .BBBuildMenu::-webkit-scrollbar { width: 6px; }
+  .BBBuildMenu::-webkit-scrollbar-track { background: #ffffff08; border-radius: 3px; }
+  .BBBuildMenu::-webkit-scrollbar-thumb { background: #cbbca655; border-radius: 3px; }
+  .BBBuildMenu::-webkit-scrollbar-thumb:hover { background: #96dbd0aa; }
+  /* Panorama's default (no flow-children): children share the panel's box, sit top-left, and move only by
+     their own horizontal-/vertical-align. A one-cell grid reproduces that; flow-children rules switch to flex. */
+  :where(.pn:not(.pn-Label)) { display: grid; justify-items: start; align-items: start; }
+  :where(.pn:not(.pn-Label)) > * { grid-area: 1 / 1; }
+  /* Panorama draws an Image inside its padding; the background colour still fills the whole box. */
+  .pn-Image { background-origin: content-box; }
+  .pn-Button { cursor: pointer; }
+  /* Panorama stacks children of a flow-less panel on top of each other; the close X relies on that. */
+  .BBClose, .BBChevron { display: grid !important; place-items: center; }
+  .BBClose > *, .BBChevron > * { grid-area: 1 / 1; margin: 0 !important; }
+  /* In Panorama, hittest=false on a panel doesn't stop its children receiving the mouse; in the browser
+     pointer-events is inherited, so every panel opts back in and only the one set to none is skipped. */
+  .pn { pointer-events: auto; }
+  /* Tooltips sit above the bubble (which is 85% opaque) so nothing shows through them. */
+  .pn-tooltip {
+    position: fixed; z-index: 10000; max-width: 300px; padding: 10px 13px; line-height: 1.5; white-space: pre-wrap;
+    background: #0b0a09; border: 1px solid #e9e3d8; border-radius: 6px; color: #ffffff; opacity: 1;
+    box-shadow: 0 10px 28px #000000; font: 600 13px "Segoe UI", sans-serif; pointer-events: none;
+  }
+  #BuildBubbleRoot { position: absolute; top: 0; }
+  #BuildBubbleRoot.BBRight { right: 0; }
+  #BuildBubbleRoot.BBLeft { left: 0; }
+  #BuildBubbleRoot.BBPlaced { right: auto; }
+  .BBHeader { cursor: move; }
+  .BBHeader .pn-Button { cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="screen"></div>
+<div id="shopMock"><div class="grid"></div></div>
+<div id="hud"></div>
+<script>
+  const grid = document.querySelector('#shopMock .grid');
+  for (let i = 0; i < 24; i++) { const t = document.createElement('i'); t.style.setProperty('--c', ['#e3973c', '#7bbf45', '#b67cf0'][i % 3]); grid.appendChild(t); }
+</script>
+<script src="shim.js"></script>
+<script>
+  (async () => {
+    const q = new URLSearchParams(location.search);
+    await bbLoadStyles('bubble/build_bubble.css');
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'bubble/build_bubble_data.js';
+      s.onload = resolve; s.onerror = () => reject(new Error('no data yet'));
+      document.head.appendChild(s);
+    });
+    // Settings under test come from the manager page, not the baked-in file.
+    if (q.get('settings')) Object.assign(BB_SETTINGS, JSON.parse(q.get('settings')));
+    bbSim.setHero(q.get('hero') || '');
+    const s = document.createElement('script');
+    s.src = 'bubble/build_bubble.js';
+    s.onload = () => {
+      const mode = q.get('mode') || 'shop';
+      document.body.classList.toggle('shop', mode === 'shop');
+      document.body.classList.toggle('draft', mode === 'draft');
+      setTimeout(() => {
+        if (mode === 'shop') bbSim.setShop(true);
+        else if (mode === 'draft') bbSim.setDraft(true);
+        else if (mode === 'hotkey') bbSim.pressHotkey();
+      }, 1100);
+    };
+    document.head.appendChild(s);
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'bb-hotkey') bbSim.pressHotkey();
+    });
+  })().catch((e) => { document.body.insertAdjacentHTML('beforeend', `<p style="position:absolute;left:24px;top:24px;font:14px sans-serif;color:#ff9999">${e.message}</p>`); });
+</script>
+</body>
+</html>

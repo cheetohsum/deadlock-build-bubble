@@ -1,0 +1,1151 @@
+/* Deadlock Build Bubble - styled after the in-game shop: offBlack panels, cream type, souls teal. */
+
+.BBRoot {
+  width: 556px;
+  max-height: 80%;
+  vertical-align: top;
+  margin-top: 104px;
+  flow-children: right;
+  z-index: 9999;
+  visibility: collapse;
+  opacity: 0;
+  transform: translateX( 18px );
+  transition-property: opacity, transform;
+  transition-duration: 0.14s;
+  transition-timing-function: ease-out;
+}
+.BBRoot.BBShown { visibility: visible; opacity: 1; transform: translateX( 0px ); }
+.BBRoot.BBRight { horizontal-align: right; margin-right: 22px; }
+.BBRoot.BBLeft { horizontal-align: left; margin-left: 22px; transform: translateX( -18px ); }
+.BBRoot.BBLeft.BBShown { transform: translateX( 0px ); }
+.BBRoot.BBCompact { width: 460px; }
+/* Once the user drops the bubble somewhere, script sets its position; alignment and margins step aside. */
+.BBRoot.BBPlaced { horizontal-align: left; vertical-align: top; margin: 0px; transition-property: opacity; }
+
+/* Deadlock's hud.css gives every Button a grey #999999 fill and centres it both ways: that was the white
+   backing in settings and the last button pushed right in rows. Ours start transparent and top-left (as in
+   the manager preview); each button's own rule below adds its fill and alignment. */
+.BBFloorOption, .BBFloorPicker, .BBPick, .BBSegOption, .BBPagerArrow, .BBPagerDot, .BBPinButton, .BBIconButton,
+.BBClose, .BBHeroButton, .BBTab, .BBMatchRow, .BBTextButton, .BBSettingRow, .BBBuildOption, .BBBuildPicker {
+  background-color: #00000000;
+  horizontal-align: left;
+  vertical-align: top;
+}
+
+/* The speech-bubble tail, pointing toward the middle of the screen. */
+.BBTail {
+  width: 16px;
+  height: 16px;
+  margin-top: 30px;
+  transform: rotateZ( 45deg );
+  background-color: #221e19d9;
+  z-index: 1;
+}
+.BBTailLeft {
+  margin-right: -9px;
+  border-left: 1px solid #cbbca655;
+  border-bottom: 1px solid #cbbca655;
+}
+.BBTailRight {
+  margin-left: -9px;
+  border-top: 1px solid #cbbca655;
+  border-right: 1px solid #cbbca655;
+}
+
+/* The bubble background is 85% opaque so the game shows through a little. */
+.BBFrame {
+  width: fill-parent-flow( 1.0 );
+  max-height: 100%;
+  flow-children: down;
+  background-color: gradient( linear, 0% 0%, 0% 100%, from( #221e19d9 ), to( #121110d9 ) );
+  border: 1px solid #cbbca655;
+  border-radius: 12px;
+  box-shadow: #000000b0 0px 8px 28px 0px;
+  z-index: 2;
+}
+.BBMoving .BBFrame { border: 1px solid #96dbd0; }
+
+/* ---------- header ---------- */
+.BBHeader {
+  width: 100%;
+  height: 72px;
+  flow-children: right;
+  padding: 12px 14px 10px 14px;
+  background-color: gradient( linear, 0% 0%, 100% 0%, from( #583f2166 ), to( #58392100 ) );
+  border-radius: 12px 12px 0px 0px;
+}
+.BBHeader:hover { background-color: gradient( linear, 0% 0%, 100% 0%, from( #583f2188 ), to( #58392111 ) ); }
+.BBHeroButton {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  border: 2px solid #cbbca6aa;
+  background-color: #141414;
+}
+.BBHeroButton:hover { border: 2px solid #96dbd0; }
+.BBHeroIcon { width: 100%; height: 100%; }
+/* "?" in the portrait circle while picking a hero. */
+.BBHeroQuestion {
+  horizontal-align: center;
+  vertical-align: center;
+  font-family: block;
+  font-size: 26px;
+  color: #cbbca6;
+}
+/* Hero name box: its height is eased by script, down to nothing while picking a hero. */
+.BBNameBox { width: 100%; flow-children: down; overflow: clip; }
+.BBTitles {
+  width: fill-parent-flow( 1.0 );
+  flow-children: down;
+  margin-left: 12px;
+  margin-right: 8px;
+  vertical-align: center;
+}
+.BBHeroName {
+  font-family: "Swear Text Demo", serif;
+  font-size: 24px;
+  color: #cbbca6;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-overflow: shrink;
+}
+.BBHeroNameArt {
+  height: 26px;
+  width: 200px;
+  margin-bottom: -2px;
+  horizontal-align: left;
+}
+.BBHeroName { horizontal-align: left; }
+
+/* Build line: the build name is a dropdown button, then star + favourites and calendar + date. */
+.BBBuildRow {
+  width: 100%;
+  height: 22px;
+  flow-children: right;
+  horizontal-align: left;
+  margin-top: 0px;
+  overflow: clip;
+  opacity: 1;
+  transition-property: height, opacity;
+  transition-duration: 0.24s;
+  transition-timing-function: ease-in-out;
+}
+/* Top WR has no build: the line folds away and the (vertically centred) hero name glides down, then back up. */
+.BBBuildRow.BBRowGone { height: 0px; opacity: 0; }
+.BBBuildPicker {
+  flow-children: down;
+  horizontal-align: left;
+  padding: 0px 4px;
+  margin-left: -4px;
+  background-color: #00000000;
+  border-radius: 4px;
+  max-width: 380px;
+  overflow: clip;
+  opacity: 1;
+  transition-property: max-width, opacity, background-color;
+  transition-duration: 0.24s;
+  transition-timing-function: ease-in-out;
+}
+/* Tab / build switch: the name wraps shut from the right, then unwraps with the new name. */
+.BBBuildPicker.BBNameWrap { max-width: 0px; opacity: 0.15; }
+/* Animations off (cog menu): the CSS transitions finish at once too. */
+.BBRoot.BBNoAnim { transition-duration: 0s; }
+.BBNoAnim .BBBuildRow, .BBNoAnim .BBBuildPicker { transition-duration: 0s; }
+.BBBuildLine { flow-children: right; height: 22px; transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
+.BBBuildPicker:hover .BBBuildLine { transform: rotateZ( 2deg ); }
+.BBBuildName {
+  max-width: 290px;
+  vertical-align: center;
+  font-family: block;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #e9e3d8;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid #ffffff00;
+}
+.BBBuildCaret {
+  width: 7px;
+  height: 7px;
+  vertical-align: center;
+  margin: 0px 3px 0px 8px;
+  border-right: 2px solid #cbbca6;
+  border-bottom: 2px solid #cbbca6;
+  transform: translateY( -2px ) rotateZ( 45deg );
+}
+.BBMenuOpen .BBBuildCaret { transform: translateY( 2px ) rotateZ( -135deg ); }
+.BBBuildPicker:hover .BBBuildCaret { border-right: 2px solid #ffffff; border-bottom: 2px solid #ffffff; }
+.BBBuildStats {
+  flow-children: right;
+  vertical-align: center;
+  margin-left: 4px;
+}
+.BBStat {
+  flow-children: right;
+  vertical-align: center;
+  margin-left: 10px;
+}
+.BBStarIcon {
+  vertical-align: center;
+  margin-right: 4px;
+  font-size: 14px;
+  color: #ffd27a;
+}
+.BBStatText {
+  vertical-align: center;
+  font-family: block;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #d9d2c6;
+  white-space: nowrap;
+}
+.BBCalIcon {
+  width: 12px;
+  height: 12px;
+  vertical-align: center;
+  margin-right: 5px;
+  flow-children: down;
+  border: 1px solid #96dbd0;
+  border-radius: 2px;
+}
+.BBCalTop {
+  width: 100%;
+  height: 3px;
+  background-color: #96dbd0;
+}
+
+/* Build dropdown: sits between the header and the tabs while open. */
+.BBBuildMenu {
+  width: 100%;
+  max-height: 300px;
+  flow-children: down;
+  overflow: squish scroll;
+}
+/* The list inside the dropdown, measured for the open / close fold. */
+.BBMenuInner { width: 100%; flow-children: down; padding: 2px 14px 8px 14px; }
+.BBBuildMenu VerticalScrollBar {
+  width: 6px;
+  margin-right: 4px;
+  border-radius: 3px;
+  background-color: #ffffff08;
+}
+.BBBuildMenu VerticalScrollBar .ScrollThumb {
+  min-height: 24px;
+  border-radius: 3px;
+  background-color: #cbbca655;
+}
+.BBBuildMenu VerticalScrollBar:hover .ScrollThumb { background-color: #96dbd0aa; }
+/* No scrollbar flicker while the dropdown eases open or shut. */
+.BBBuildMenu.BBFolding VerticalScrollBar { opacity: 0; }
+.BBBuildOption {
+  width: 100%;
+  height: 34px;
+  flow-children: right;
+  margin-top: 4px;
+  padding: 0px 10px;
+  border-radius: 6px;
+  background-color: #ffffff08;
+  border: 1px solid #ffffff12;
+  transition-property: background-color, border;
+  transition-duration: 0.1s;
+}
+.BBBuildOption:hover { background-color: #ffffff1c; border: 1px solid #ffffffb0; }
+.BBBuildOption.Active { background-color: #96dbd01c; border: 1px solid #96dbd088; }
+/* A build list row's name: its own box fills the row, the name inside morphs at its natural width. */
+.BBOptNameBox { width: fill-parent-flow( 1.0 ); flow-children: right; vertical-align: center; }
+.BBOptNameBox .BBBuildOptionName { width: fit-children; }
+/* The hero picker while it folds shut after a hero is chosen. */
+.BBPickerGhost { width: 100%; flow-children: down; }
+.BBBuildOptionName {
+  width: fill-parent-flow( 1.0 );
+  vertical-align: center;
+  font-family: block;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: #e9e3d8;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Pin button on each build in the dropdown: a drawn push-pin (round head, needle), tilted. */
+/* Pin: just the glyph (no card); it turns white on hover and teal while pinned. */
+.BBPinButton {
+  width: 26px;
+  height: 26px;
+  vertical-align: center;
+  margin-left: 8px;
+}
+.BBPinIcon {
+  width: 12px;
+  height: 15px;
+  horizontal-align: center;
+  vertical-align: center;
+  transform: rotateZ( 35deg );
+}
+.BBPinHead {
+  width: 9px;
+  height: 9px;
+  horizontal-align: center;
+  vertical-align: top;
+  border-radius: 5px;
+  background-color: #cbbca6;
+}
+.BBPinNeedle {
+  width: 2px;
+  height: 7px;
+  horizontal-align: center;
+  vertical-align: bottom;
+  border-radius: 1px;
+  background-color: #cbbca6;
+}
+.BBPinButton.On .BBPinHead,
+.BBPinButton.On .BBPinNeedle { background-color: #96dbd0; }
+/* Pin mark: shows a build is pinned, in front of its name in the dropdown and the header. */
+.BBPinMark { margin-right: 8px; }
+.BBPinMark .BBPinHead,
+.BBPinMark .BBPinNeedle { background-color: #96dbd0; }
+.BBHeaderPin { margin-right: 6px; }
+
+/* Win-rate rank floor dropdown (in the win-rate stats line) and its menu. */
+.BBFloorPicker {
+  flow-children: down;
+  padding: 0px 4px;
+  vertical-align: center;
+}
+.BBFloorLine { flow-children: right; height: 20px; transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
+.BBFloorPicker:hover .BBFloorLine { transform: rotateZ( 5deg ); }
+.BBFloorBadge { width: 20px; height: 20px; vertical-align: center; }
+.BBFloorPicker .BBFloorBadge { margin-right: 1px; }
+.BBFloorOption .BBFloorBadge { width: 26px; height: 26px; horizontal-align: center; }
+.BBFloorName {
+  vertical-align: center;
+  font-family: block;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #f2efe9;
+  white-space: nowrap;
+  border-bottom: 1px solid #ffffff00;
+}
+.BBFloorPicker:hover .BBBuildCaret { border-right: 2px solid #ffffff; border-bottom: 2px solid #ffffff; }
+/* One even row: fixed-size buttons with the badge (or "All") centred in each. */
+.BBFloorMenu {
+  width: 100%;
+  flow-children: right;
+  overflow: clip;
+}
+/* The 6px above and below live on the options, inside the folding menu. */
+.BBFloorOption {
+  width: 46px;
+  height: 34px;
+  margin: 6px 6px 6px 0px;
+}
+.BBOptStack { horizontal-align: center; vertical-align: center; }
+.BBFloorOptFace { height: 26px; horizontal-align: center; transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
+.BBFloorOptFace .BBFloorName { vertical-align: center; }
+.BBFloorOption:hover .BBFloorOptFace { transform: rotateZ( 6deg ); }
+.BBFloorOption .BBFloorName { horizontal-align: center; font-size: 13px; }
+
+/* A rank floor without enough data for this hero: dimmed, badge tinted grey, no hover highlight, not clickable. */
+.BBFloorOption.Disabled { opacity: 0.35; }
+.BBFloorOption.Disabled:hover .BBFloorOptFace { transform: rotateZ( 0deg ); }
+.BBFloorOption.Disabled .BBFloorBadge { wash-color: #8f8a84; }
+
+
+.BBModeTag {
+  vertical-align: top;
+  margin: 3px 8px 0px 0px;
+  padding: 3px 7px;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #141414;
+  background-color: #ff9d3c;
+  border-radius: 3px;
+}
+.BBHidden { visibility: collapse; }
+
+/* Tooltip: our own, above the bubble (the game's tooltip layer sits underneath it). Script places it. */
+.BBTip {
+  horizontal-align: left;
+  vertical-align: top;
+  max-width: 320px;
+  padding: 7px 10px 8px 10px;
+  border-radius: 6px;
+  background-color: #141312f7;
+  border: 1px solid #cbbca655;
+  box-shadow: #000000aa 0px 4px 14px 0px;
+  z-index: 10001;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: 0.08s;
+}
+.BBTip.BBTipShown { opacity: 1; }
+.BBTipText { max-width: 300px; font-family: sans; font-size: 14px; color: #e9e3d8; }
+/* The invisible panel Panorama drags around while the bubble is being moved. */
+.BBDragGhost { width: 8px; height: 8px; opacity: 0; }
+
+/* Close button: an X drawn with two bars so it sits dead centre regardless of font metrics. */
+.BBClose {
+  width: 28px;
+  height: 28px;
+  vertical-align: top;
+  border-radius: 14px;
+  background-color: #ffffff12;
+  transition-property: background-color;
+  transition-duration: 0.1s;
+}
+.BBClose:hover { background-color: #ff565666; }
+.BBCloseBar {
+  width: 12px;
+  height: 2px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-radius: 1px;
+  background-color: #cbbca6;
+}
+.BBCloseBarA { transform: rotateZ( 45deg ); }
+.BBCloseBarB { transform: rotateZ( -45deg ); }
+.BBClose:hover .BBCloseBar { background-color: #ffffff; }
+
+/* Round header buttons with the game's own icons: tracklock.gg (Deadlock logo) and the settings cog. */
+.BBIconButton {
+  width: 28px;
+  height: 28px;
+  vertical-align: top;
+  margin-right: 6px;
+  border-radius: 14px;
+  background-color: #ffffff12;
+  transition-property: background-color;
+  transition-duration: 0.1s;
+}
+.BBIconButton:hover { background-color: #ffffff2e; }
+.BBIconButton.BBActive { background-color: #96dbd033; }
+.BBIconImg {
+  width: 16px;
+  height: 16px;
+  horizontal-align: center;
+  vertical-align: center;
+  wash-color: #cbbca6;
+  opacity: 0.8;
+}
+.BBIconButton:hover .BBIconImg { wash-color: #e9e3d8; opacity: 1; }
+.BBIconButton.BBActive .BBIconImg { wash-color: #96dbd0; opacity: 1; }
+.BBIconText {
+  horizontal-align: center;
+  vertical-align: center;
+  font-family: block;
+  font-size: 12px;
+  color: #cbbca6;
+}
+
+/* Settings panel (cog): sits between the header and the tabs while open. */
+.BBSettings {
+  width: 100%;
+  flow-children: down;
+  padding: 2px 14px 10px 14px;
+  background-color: #0000002e;
+  overflow: clip;
+}
+.BBSettingRow {
+  width: 100%;
+  height: 34px;
+  flow-children: right;
+  border-bottom: 1px solid #ffffff0f;
+}
+.BBSettingLabel {
+  width: fill-parent-flow( 1.0 );
+  vertical-align: center;
+  font-family: block;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #cbbca6;
+}
+.BBSettingRow:hover .BBSettingLabel { color: #e9e3d8; }
+.BBToggle {
+  width: 36px;
+  height: 20px;
+  vertical-align: center;
+  border-radius: 10px;
+  background-color: #ffffff1f;
+  transition-property: background-color;
+  transition-duration: 0.12s;
+}
+.BBToggle.On { background-color: #96dbd066; }
+.BBToggleKnob {
+  width: 14px;
+  height: 14px;
+  margin: 3px;
+  vertical-align: center;
+  border-radius: 7px;
+  background-color: #cbbca6;
+  transition-property: transform;
+  transition-duration: 0.12s;
+}
+.BBToggle.On .BBToggleKnob { transform: translateX( 16px ); background-color: #e9e3d8; }
+.BBSeg {
+  flow-children: right;
+  vertical-align: center;
+  padding: 2px;
+  border-radius: 5px;
+  background-color: #ffffff0d;
+}
+.BBSegOption { height: 22px; padding: 0px 8px; border-radius: 4px; }
+.BBSegOption:hover { background-color: #ffffff14; }
+.BBSegOption.Active { background-color: #96dbd02e; }
+.BBSegText {
+  vertical-align: center;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #cbbca6aa;
+}
+.BBSegOption:hover .BBSegText { color: #e9e3d8; }
+.BBSegOption.Active .BBSegText { color: #ffffff; }
+/* Pager row at the bottom of the build dropdown. */
+.BBMenuPager { width: 100%; height: 28px; margin-top: 6px; }
+.BBMenuPager .BBPager { horizontal-align: center; vertical-align: center; }
+/* Typed hotkey box after the preset keys. */
+.BBKeyEntry {
+  width: 58px;
+  height: 22px;
+  vertical-align: center;
+  margin-left: 6px;
+  padding: 3px 6px 0px 6px;
+  border-radius: 5px;
+  border: 1px solid #ffffff1a;
+  background-color: #ffffff0d;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #e9e3d8;
+}
+.BBKeyEntry:hover { border: 1px solid #ffffff55; }
+.BBKeyEntry:focus { border: 1px solid #96dbd0aa; }
+.BBKeyEntry.Active { border: 1px solid #ffffffaa; color: #ffffff; }
+.BBKeyEntry.BBInvalid { border: 1px solid #ff5c50aa; }
+.BBSettingNote {
+  width: 100%;
+  margin-top: 8px;
+  font-family: sans;
+  font-size: 11px;
+  color: #969087;
+}
+
+/* ---------- tabs ---------- */
+/* The strip behind the tabs continues the header's colour, so their rounded corners blend into it. */
+.BBTabs {
+  width: 100%;
+  flow-children: right;
+  background-color: gradient( linear, 0% 0%, 100% 0%, from( #583f2166 ), to( #58392100 ) );
+}
+.BBTab {
+  width: fill-parent-flow( 1.0 );
+  height: 32px;
+  background-color: #ffffff0a;
+  border-bottom: 2px solid #cbbca622;
+  border-radius: 8px 8px 0px 0px;
+  transition-property: background-color, border;
+  transition-duration: 0.1s;
+}
+/* Hover: brighter fill, white label and a white stroke along the bottom. */
+.BBTab:hover { background-color: #ffffff1f; border-bottom: 2px solid #ffffff; }
+.BBTab:hover .BBTabText { color: #ffffff; }
+.BBTab.Active { background-color: #96dbd022; border-bottom: 2px solid #96dbd0; }
+.BBTabText {
+  horizontal-align: center;
+  vertical-align: center;
+  font-family: block;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #cbbca6aa;
+}
+.BBTab.Active .BBTabText { color: #ffffff; }
+
+.BBMeta {
+  width: 100%;
+  padding: 10px 16px 2px 16px;
+  font-family: sans;
+  font-size: 12px;
+  line-height: 16px;
+  color: #a39c91;
+}
+
+/* ---------- body ---------- */
+.BBBody {
+  width: 100%;
+  max-height: 640px;
+  flow-children: down;
+  overflow: squish scroll;
+  padding: 2px 16px 14px 16px;
+}
+
+/* Scrollbar: a slim cream thumb on a faint track, teal while hovered or dragged. */
+.BBBody VerticalScrollBar {
+  width: 6px;
+  margin-right: 4px;
+  border-radius: 3px;
+  background-color: #ffffff08;
+}
+.BBBody VerticalScrollBar .ScrollThumb {
+  min-height: 36px;
+  border-radius: 3px;
+  background-color: #cbbca655;
+}
+.BBBody VerticalScrollBar:hover .ScrollThumb { background-color: #96dbd0aa; }
+.BBBody VerticalScrollBar:active .ScrollThumb { background-color: #96dbd0; }
+
+/* Section heading: title with an optional stat on the same line, underlined. */
+.BBSection { width: 100%; flow-children: down; margin-top: 14px; }
+/* One height for every section heading (the Top WR one holds the rank dropdown), so switching tabs doesn't
+   nudge the content below. */
+.BBSectionHead {
+  width: 100%;
+  height: 26px;
+  flow-children: right;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #cbbca633;
+}
+.BBSectionTitle {
+  vertical-align: center;
+  font-family: block;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #cbbca6;
+}
+/* Stats (favourites, dates, lookback) sitting in a section heading. */
+.BBSectionHead .BBStat { margin-left: 0px; margin-right: 14px; }
+.BBSectionHead .BBStat.BBLookback { margin-left: 10px; }
+/* Morphing slot (section-head stats, group names): script eases its width while the old content retracts and the
+   new one expands, so neighbours slide along. Text inside never wraps while it is squeezed. */
+.BBMorph { flow-children: right; overflow: clip; }
+.BBSectionHead .BBMorph { vertical-align: center; }
+.BBStat .BBMorph { vertical-align: center; }
+/* An item's number grows and shrinks about its centre. */
+.BBItem .BBMorph { horizontal-align: center; }
+/* The rank floor button's icon: old and new stack here while one pops out and the other pops in. */
+.BBFloorFaceBox { vertical-align: center; }
+.BBMorph Label { white-space: nowrap; }
+.BBSlotBody { flow-children: right; vertical-align: center; padding-right: 10px; }
+.BBSlotBody .BBStat { margin-left: 0px; margin-right: 0px; }
+.BBSlotBody .BBStat.BBLookback { margin-left: 0px; }
+.BBSlotBody .BBSectionStat { margin-bottom: 0px; }
+.BBSectionStat {
+  vertical-align: center;
+  margin-bottom: 1px;
+  font-family: block;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #f2efe9;
+  white-space: nowrap;
+}
+.BBCatLine { width: 100%; flow-children: right; margin-top: 6px; }
+.BBCat { flow-children: down; }
+.BBCatName {
+  font-family: sans;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a898b2;
+  margin: 0px 0px 4px 2px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.BBItemRow { width: 100%; flow-children: right-wrap; }
+
+/* Item: the icon in a frame coloured by category, with its cost or win rate underneath. */
+.BBItem {
+  width: 44px;
+  margin: 0px 4px 5px 0px;
+  flow-children: down;
+}
+/* Holder the size of the icon: during a change the outgoing icon stacks on top of the incoming one. */
+.BBItemSlot {
+  width: 40px;
+  height: 40px;
+  horizontal-align: center;
+  transition-property: transform;
+  transition-duration: 0.14s;
+  transition-timing-function: ease-out;
+}
+.BBItem:hover .BBItemSlot { transform: scale3d( 1.12, 1.12, 1 ); }
+.BBItemGhost { width: 100%; height: 100%; }
+.BBItemGhost.BBWeapon .BBItemIcon { border: 2px solid #e89f49; }
+.BBItemGhost.BBVitality .BBItemIcon { border: 2px solid #83c54e; }
+.BBItemGhost.BBSpirit .BBItemIcon { border: 2px solid #bc86f2; }
+.BBItemIcon {
+  width: 40px;
+  height: 40px;
+  horizontal-align: center;
+  padding: 2px;
+  border: 2px solid #83c54e;
+  border-radius: 8px;
+  background-color: #3b342b;
+  box-shadow: #000000aa 0px 3px 6px 0px;
+  transition-property: border, box-shadow;
+  transition-duration: 0.1s;
+}
+.BBItemIcon:hover { border: 2px solid #a8e27a; }
+/* Frame colour follows the shop's item categories: weapon orange, vitality green, spirit purple. */
+.BBWeapon .BBItemIcon { border: 2px solid #e89f49; }
+.BBWeapon .BBItemIcon:hover { border: 2px solid #ffc076; }
+.BBVitality .BBItemIcon { border: 2px solid #83c54e; }
+.BBVitality .BBItemIcon:hover { border: 2px solid #a8e27a; }
+.BBSpirit .BBItemIcon { border: 2px solid #bc86f2; }
+.BBSpirit .BBItemIcon:hover { border: 2px solid #d4acff; }
+/* Card colour matches the item art's own background, sampled from the game's icons: cream at tier 1, then tan
+   (weapon) / sage (vitality) / lilac (spirit) at tier 2, darker at tier 3, near black at tier 4. The frame keeps the
+   category colour, brightest at tier 1 (800) and darker each tier up (1,600 / 3,200 / 6,400). The outgoing card
+   during a change keeps its own colours. */
+.BBWeapon.BBT1 .BBItemIcon { background-color: #eee0ca; border: 2px solid #f7ca8a; }
+.BBWeapon.BBT2 .BBItemIcon { background-color: #c0946a; border: 2px solid #e89f49; }
+.BBWeapon.BBT3 .BBItemIcon { background-color: #5f4321; border: 2px solid #94591d; }
+.BBWeapon.BBT4 .BBItemIcon { background-color: #1a0c09; border: 2px solid #432708; }
+.BBWeapon.BBT5 .BBItemIcon { background-color: #6f4a1f; border: 2px solid #553311; }
+.BBVitality.BBT1 .BBItemIcon { background-color: #ecdbc5; border: 2px solid #b3e088; }
+.BBVitality.BBT2 .BBItemIcon { background-color: #94a488; border: 2px solid #83c54e; }
+.BBVitality.BBT3 .BBItemIcon { background-color: #4b5346; border: 2px solid #467a26; }
+.BBVitality.BBT4 .BBItemIcon { background-color: #121a10; border: 2px solid #1f3b10; }
+.BBVitality.BBT5 .BBItemIcon { background-color: #3d8b76; border: 2px solid #2a4a1c; }
+.BBSpirit.BBT1 .BBItemIcon { background-color: #eae0e2; border: 2px solid #dbbbfa; }
+.BBSpirit.BBT2 .BBItemIcon { background-color: #a58cb3; border: 2px solid #bc86f2; }
+.BBSpirit.BBT3 .BBItemIcon { background-color: #504863; border: 2px solid #7342ad; }
+.BBSpirit.BBT4 .BBItemIcon { background-color: #1a1a27; border: 2px solid #351d5a; }
+.BBSpirit.BBT5 .BBItemIcon { background-color: #5d46b5; border: 2px solid #452a72; }
+.BBTimelineIcon.BBWeapon.BBT1, .BBMatchItem.BBWeapon.BBT1 { background-color: #eee0ca; border: 1px solid #f7ca8a; }
+.BBTimelineIcon.BBWeapon.BBT2, .BBMatchItem.BBWeapon.BBT2 { background-color: #c0946a; border: 1px solid #e89f49; }
+.BBTimelineIcon.BBWeapon.BBT3, .BBMatchItem.BBWeapon.BBT3 { background-color: #5f4321; border: 1px solid #94591d; }
+.BBTimelineIcon.BBWeapon.BBT4, .BBMatchItem.BBWeapon.BBT4 { background-color: #1a0c09; border: 1px solid #432708; }
+.BBTimelineIcon.BBWeapon.BBT5, .BBMatchItem.BBWeapon.BBT5 { background-color: #6f4a1f; border: 1px solid #553311; }
+.BBTimelineIcon.BBVitality.BBT1, .BBMatchItem.BBVitality.BBT1 { background-color: #ecdbc5; border: 1px solid #b3e088; }
+.BBTimelineIcon.BBVitality.BBT2, .BBMatchItem.BBVitality.BBT2 { background-color: #94a488; border: 1px solid #83c54e; }
+.BBTimelineIcon.BBVitality.BBT3, .BBMatchItem.BBVitality.BBT3 { background-color: #4b5346; border: 1px solid #467a26; }
+.BBTimelineIcon.BBVitality.BBT4, .BBMatchItem.BBVitality.BBT4 { background-color: #121a10; border: 1px solid #1f3b10; }
+.BBTimelineIcon.BBVitality.BBT5, .BBMatchItem.BBVitality.BBT5 { background-color: #3d8b76; border: 1px solid #2a4a1c; }
+.BBTimelineIcon.BBSpirit.BBT1, .BBMatchItem.BBSpirit.BBT1 { background-color: #eae0e2; border: 1px solid #dbbbfa; }
+.BBTimelineIcon.BBSpirit.BBT2, .BBMatchItem.BBSpirit.BBT2 { background-color: #a58cb3; border: 1px solid #bc86f2; }
+.BBTimelineIcon.BBSpirit.BBT3, .BBMatchItem.BBSpirit.BBT3 { background-color: #504863; border: 1px solid #7342ad; }
+.BBTimelineIcon.BBSpirit.BBT4, .BBMatchItem.BBSpirit.BBT4 { background-color: #1a1a27; border: 1px solid #351d5a; }
+.BBTimelineIcon.BBSpirit.BBT5, .BBMatchItem.BBSpirit.BBT5 { background-color: #5d46b5; border: 1px solid #452a72; }
+.BBItemGhost.BBWeapon.BBT1 .BBItemIcon { background-color: #eee0ca; border: 2px solid #f7ca8a; }
+.BBItemGhost.BBWeapon.BBT2 .BBItemIcon { background-color: #c0946a; border: 2px solid #e89f49; }
+.BBItemGhost.BBWeapon.BBT3 .BBItemIcon { background-color: #5f4321; border: 2px solid #94591d; }
+.BBItemGhost.BBWeapon.BBT4 .BBItemIcon { background-color: #1a0c09; border: 2px solid #432708; }
+.BBItemGhost.BBWeapon.BBT5 .BBItemIcon { background-color: #6f4a1f; border: 2px solid #553311; }
+.BBItemGhost.BBVitality.BBT1 .BBItemIcon { background-color: #ecdbc5; border: 2px solid #b3e088; }
+.BBItemGhost.BBVitality.BBT2 .BBItemIcon { background-color: #94a488; border: 2px solid #83c54e; }
+.BBItemGhost.BBVitality.BBT3 .BBItemIcon { background-color: #4b5346; border: 2px solid #467a26; }
+.BBItemGhost.BBVitality.BBT4 .BBItemIcon { background-color: #121a10; border: 2px solid #1f3b10; }
+.BBItemGhost.BBVitality.BBT5 .BBItemIcon { background-color: #3d8b76; border: 2px solid #2a4a1c; }
+.BBItemGhost.BBSpirit.BBT1 .BBItemIcon { background-color: #eae0e2; border: 2px solid #dbbbfa; }
+.BBItemGhost.BBSpirit.BBT2 .BBItemIcon { background-color: #a58cb3; border: 2px solid #bc86f2; }
+.BBItemGhost.BBSpirit.BBT3 .BBItemIcon { background-color: #504863; border: 2px solid #7342ad; }
+.BBItemGhost.BBSpirit.BBT4 .BBItemIcon { background-color: #1a1a27; border: 2px solid #351d5a; }
+.BBItemGhost.BBSpirit.BBT5 .BBItemIcon { background-color: #5d46b5; border: 2px solid #452a72; }
+/* Hover: a white frame and a deeper shadow on the icon. */
+.BBItem:hover .BBItemIcon { border: 2px solid #ffffff; box-shadow: #000000cc 0px 6px 12px 0px; }
+.BBItemCost,
+.BBItemStat {
+  horizontal-align: center;
+  margin-top: 2px;
+  padding-bottom: 1px;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #ffffff00;
+}
+.BBItemCost { color: #f2efe9; }
+.BBItemStat { color: #ffd27a; font-weight: bold; }
+
+/* ---------- ability order ---------- */
+/* Grid + max order: the grid's cells share a full-width row, so the block is full width too and the max order
+   centres beneath the grid. */
+.BBSkillWrap { width: 100%; flow-children: down; }
+.BBSkillGrid { width: 100%; flow-children: down; margin-top: 8px; }
+.BBSkillRow { width: 100%; height: 20px; flow-children: right; margin-bottom: 2px; }
+.BBSkillRow.BBSkillHead { height: 12px; margin-bottom: 1px; }
+.BBSkillIcon,
+.BBSkillIconSpacer {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 4px;
+}
+.BBSkillIcon {
+  background-color: #4a4034;
+  box-shadow: #000000aa 0px 2px 4px 0px;
+  transition-property: transform;
+  transition-duration: 0.14s;
+  transition-timing-function: ease-out;
+}
+.BBSkillIcon:hover { transform: scale3d( 1.18, 1.18, 1 ); }
+.BBSkillIconSpacer { height: 12px; }
+.BBAbilityImg { width: 100%; height: 100%; }
+.BBSkillCell {
+  width: fill-parent-flow( 1.0 );
+  max-width: 18px;
+  height: 18px;
+  margin-right: 2px;
+  border-radius: 3px;
+  background-color: #ffffff08;
+}
+.BBSkillCell.BBSkillStep { height: 12px; background-color: none; }
+.BBSkillStepText {
+  horizontal-align: center;
+  font-family: block;
+  font-size: 9px;
+  color: #cbbca677;
+}
+/* A filled cell's colour and number sit on a piece inside the cell, so a change can recess it and grow the new one. */
+.BBSkillFill { width: 100%; height: 100%; border-radius: 3px; background-color: #ffffff38; }
+.BBSkillFill.BBTier0 { background-color: #cbbca655; }
+.BBSkillFill.BBTier3 { background-color: #ffffffcc; }
+.BBSkillFill.BBTier3 .BBSkillCellText { color: #161513; }
+.BBSkillCellText {
+  horizontal-align: center;
+  vertical-align: center;
+  font-family: block;
+  font-size: 9px;
+  color: #ffffff;
+}
+
+/* Max order: icons joined by a gold double chevron (two rotated corner strokes, the rear one faded). */
+.BBMaxOrder {
+  horizontal-align: center;
+  height: 32px;
+  flow-children: right;
+  margin-top: 10px;
+}
+.BBMaxOrderLabel {
+  vertical-align: center;
+  margin-right: 12px;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #969087;
+}
+.BBMaxIcon {
+  width: 28px;
+  height: 28px;
+  vertical-align: center;
+  border-radius: 6px;
+  background-color: #4a4034;
+  box-shadow: #000000aa 0px 3px 6px 0px;
+  transition-property: transform;
+  transition-duration: 0.14s;
+  transition-timing-function: ease-out;
+}
+/* A max-order icon: the slot moves when the order changes, the plate inside grows on hover. */
+.BBMaxSlot { vertical-align: center; }
+.BBMaxIcon:hover { transform: scale3d( 1.12, 1.12, 1 ); }
+.BBChevron {
+  width: 24px;
+  height: 28px;
+  vertical-align: center;
+  margin: 0px 3px;
+}
+.BBChevronStroke {
+  width: 9px;
+  height: 9px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-top: 2px solid #e2c07f;
+  border-right: 2px solid #e2c07f;
+}
+.BBChevronBack { opacity: 0.4; transform: translateX( -4px ) rotateZ( 45deg ); }
+.BBChevronFront { transform: translateX( 3px ) rotateZ( 45deg ); }
+
+/* ---------- notes, hints, picker ---------- */
+.BBNotes {
+  width: 100%;
+  margin-top: 8px;
+  padding: 0px 2px;
+  font-family: sans;
+  font-size: 13px;
+  line-height: 19px;
+  color: #e9e3d8;
+}
+.BBBrawlHint {
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background-color: #ff9d3c22;
+  border-left: 3px solid #ff9d3c;
+  font-family: sans;
+  font-size: 12px;
+  line-height: 16px;
+  color: #ffd9b0;
+}
+.BBEmpty {
+  width: 100%;
+  margin: 12px 2px;
+  font-family: sans;
+  font-size: 13px;
+  color: #969087;
+}
+/* Hero grid: portrait with the hero's stylised name logo underneath. */
+.BBPicker { width: 100%; flow-children: down; margin-top: 12px; margin-bottom: 6px; }
+.BBPickRow { width: 100%; height: 90px; flow-children: right; }
+.BBPick {
+  width: 84px;
+  height: 86px;
+  margin: 0px 5px 4px 0px;
+  flow-children: down;
+}
+.BBPickIcon, .BBNameStack { transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
+.BBPickIcon { width: 40px; height: 40px; horizontal-align: center; margin-top: 4px; }
+.BBPickArt { horizontal-align: center; }
+.BBNameStack { horizontal-align: center; margin-top: 6px; }
+/* Hover: the portrait tilts left and the name right. */
+.BBPick:hover .BBPickIcon { transform: rotateZ( -6deg ); }
+.BBPick:hover .BBNameStack { transform: rotateZ( 4deg ); }
+.BBPickName {
+  horizontal-align: center;
+  margin-top: 5px;
+  font-family: sans;
+  font-size: 13px;
+  color: #e9e3d8;
+  text-overflow: shrink;
+}
+/* Drop stroke (hero names, build names, rank floor button and options): a crisp white copy of the letters or image
+   set 2px down and to the right, behind them. It lights up on hover and is solid for the chosen one or a press; the
+   text or image in front keeps its own colour. Text uses an unblurred text-shadow (Panorama: x y blur strength
+   colour); images get a white-washed copy stacked behind them. */
+.BBPickName, .BBBuildName, .BBFloorName, .BBBuildOptionName { text-shadow: 2px 2px 0px 1.0 #ffffff30; }
+.BBPick:hover .BBPickName, .BBBuildPicker:hover .BBBuildName, .BBFloorPicker:hover .BBFloorName, .BBFloorOption:hover .BBFloorName,
+.BBBuildOption:hover .BBBuildOptionName {
+  text-shadow: 1px 1px 0px 1.0 #ffffffa6;
+}
+.BBPick.Active .BBPickName, .BBPick:active .BBPickName, .BBBuildPicker.BBMenuOpen .BBBuildName, .BBBuildPicker:active .BBBuildName,
+.BBFloorPicker.BBMenuOpen .BBFloorName, .BBFloorPicker:active .BBFloorName, .BBFloorOption.Active .BBFloorName, .BBFloorOption:active .BBFloorName,
+.BBBuildOption.Active .BBBuildOptionName, .BBBuildOption:active .BBBuildOptionName {
+  text-shadow: 1px 1px 0px 1.0 #ffffff;
+}
+.BBBadgeStack { vertical-align: center; }
+.BBDropCopy { transform: translate3d( 2px, 2px, 0px ); opacity: 0.2; transition-property: opacity, transform; transition-duration: 0.12s; }
+.BBPick:hover .BBDropCopy, .BBFloorPicker:hover .BBDropCopy, .BBFloorOption:hover .BBDropCopy { opacity: 0.65; transform: translate3d( 1px, 1px, 0px ); }
+.BBPick.Active .BBDropCopy, .BBPick:active .BBDropCopy, .BBFloorPicker.BBMenuOpen .BBDropCopy, .BBFloorPicker:active .BBDropCopy,
+.BBFloorOption.Active .BBDropCopy, .BBFloorOption:active .BBDropCopy { opacity: 1; transform: translate3d( 1px, 1px, 0px ); }
+/* Floors without enough data have no stroke. */
+.BBFloorOption.Disabled .BBDropCopy, .BBFloorOption.Disabled:hover .BBDropCopy { opacity: 0; }
+/* Animations off: hover effects snap. */
+.BBNoAnim .BBStroke, .BBNoAnim .BBBuildLine, .BBNoAnim .BBFloorLine, .BBNoAnim .BBFloorOptFace,
+.BBNoAnim .BBPickIcon, .BBNoAnim .BBNameStack, .BBNoAnim .BBDropCopy { transition-duration: 0s; }
+.BBNoAnim .BBItemSlot, .BBNoAnim .BBSkillIcon, .BBNoAnim .BBMaxIcon, .BBNoAnim .BBTimelineIcon { transition-duration: 0s; }
+.BBTextButton { margin: 8px 2px; }
+.BBTextButton Label { font-family: sans; font-size: 12px; color: #f2efe9; }
+.BBTextButton:hover Label { color: #ffffff; }
+
+
+/* ---------- recent pro matches ---------- */
+.BBMatch {
+  width: 100%;
+  flow-children: down;
+  margin-top: 6px;
+  border-radius: 6px;
+  background-color: #ffffff08;
+  border-left: 3px solid #78d668;
+}
+.BBMatch.BBLoss { border-left: 3px solid #ff5c50; }
+.BBMatch.BBExpanded { background-color: #ffffff0f; }
+.BBMatchRow {
+  width: 100%;
+  height: 50px;
+  flow-children: right;
+  padding: 0px 8px 0px 10px;
+}
+.BBMatchRow:hover { background-color: #ffffff0a; }
+.BBMatchResult { width: 52px; flow-children: down; vertical-align: center; }
+.BBMatchWin {
+  font-family: block;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #78d668;
+}
+.BBLoss .BBMatchWin { color: #ff5c50; }
+.BBMatchAgo { font-family: sans; font-size: 10px; color: #969087; }
+.BBMatchPlayer {
+  width: 96px;
+  vertical-align: center;
+  font-family: block;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #e9e3d8;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.BBMatchKda { width: 64px; flow-children: down; vertical-align: center; }
+.BBMatchKdaLine { horizontal-align: center; font-family: block; font-size: 14px; color: #e9e3d8; white-space: nowrap; }
+.BBMatchKdaRatio { horizontal-align: center; font-family: block; font-size: 11px; color: #ffb45c; }
+.BBMatchItems { width: 134px; flow-children: right-wrap; vertical-align: center; margin-left: 6px; }
+.BBMatchItem {
+  width: 20px;
+  height: 20px;
+  margin: 1px;
+  border-radius: 4px;
+  border: 1px solid #ffffff22;
+  background-color: #161513;
+}
+.BBMatchItem.BBWeapon, .BBTimelineIcon.BBWeapon { border: 1px solid #e89f49; }
+.BBMatchItem.BBVitality, .BBTimelineIcon.BBVitality { border: 1px solid #83c54e; }
+.BBMatchItem.BBSpirit, .BBTimelineIcon.BBSpirit { border: 1px solid #bc86f2; }
+.BBMatchSouls { width: fill-parent-flow( 1.0 ); flow-children: down; vertical-align: center; }
+.BBMatchSoulsText { horizontal-align: right; font-family: block; font-size: 13px; color: #f2efe9; }
+.BBMatchTime { horizontal-align: right; font-family: block; font-size: 11px; color: #969087; }
+/* Souls: the soul icon, then the amount. */
+.BBMatchSoulsLine { horizontal-align: right; flow-children: right; }
+.BBMatchSoulsLine .BBMatchSoulsText { vertical-align: center; }
+.BBSoulIcon { width: 14px; height: 14px; vertical-align: center; margin-right: 4px; }
+/* Recent matches heading: the title fills the line so the pager sits at its right end. */
+.BBSectionHead .BBFill { width: fill-parent-flow( 1.0 ); }
+/* A match's details fold open and shut in this clipping box (its height is eased by script). */
+.BBFoldBox { width: 100%; flow-children: down; overflow: clip; }
+.BBMatchToggle { width: 22px; height: 22px; vertical-align: center; margin-left: 6px; }
+.BBMatchChevron {
+  width: 8px;
+  height: 8px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-right: 2px solid #cbbca6;
+  border-bottom: 2px solid #cbbca6;
+  transform: translateY( -2px ) rotateZ( 45deg );
+}
+.BBExpanded .BBMatchChevron { transform: translateY( 2px ) rotateZ( -135deg ); }
+.BBMatchDetail { width: 100%; flow-children: down; padding: 0px 12px 12px 12px; }
+.BBDetailTitle {
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #969087;
+}
+.BBTimeline { width: 100%; flow-children: right-wrap; }
+.BBTimelineItem { width: 44px; flow-children: down; margin: 0px 3px 6px 0px; }
+.BBTimelineIcon {
+  width: 34px;
+  height: 34px;
+  horizontal-align: center;
+  border-radius: 6px;
+  border: 1px solid #ffffff22;
+  background-color: #3b342b;
+  box-shadow: #000000aa 0px 2px 5px 0px;
+  transition-property: transform;
+  transition-duration: 0.14s;
+  transition-timing-function: ease-out;
+}
+.BBTimelineIcon:hover { transform: scale3d( 1.12, 1.12, 1 ); }
+.BBTimelineIcon.BBSold { opacity: 0.4; }
+/* Timeline heading: title on the left, pager on the right. */
+.BBDetailHead { width: 100%; flow-children: right; margin-top: 10px; margin-bottom: 6px; }
+.BBDetailHead .BBDetailTitle { width: fill-parent-flow( 1.0 ); margin: 0px; vertical-align: center; }
+.BBPager { flow-children: right; vertical-align: center; }
+.BBPagerLabel {
+  vertical-align: center;
+  margin-right: 10px;
+  font-family: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #969087;
+}
+.BBPagerArrow {
+  width: 22px;
+  height: 22px;
+  vertical-align: center;
+  border-radius: 11px;
+  background-color: #ffffff12;
+  transition-property: background-color, opacity;
+  transition-duration: 0.12s;
+}
+.BBPagerArrow:hover { background-color: #ffffff2e; }
+.BBPagerArrow.Disabled { opacity: 0.3; }
+.BBPagerPrev { margin-right: 6px; }
+.BBPagerNext { margin-left: 6px; }
+.BBPagerChevron {
+  width: 7px;
+  height: 7px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-top: 2px solid #cbbca6;
+  border-right: 2px solid #cbbca6;
+}
+.BBPagerPrev .BBPagerChevron { transform: translateX( 1px ) rotateZ( -135deg ); }
+.BBPagerNext .BBPagerChevron { transform: translateX( -1px ) rotateZ( 45deg ); }
+.BBPagerArrow:hover .BBPagerChevron { border-top: 2px solid #ffffff; border-right: 2px solid #ffffff; }
+/* Each dot is a 14px button (easy to hit) around a small mark; the current page's mark is a wider pill. */
+.BBPagerDot { width: 14px; height: 18px; vertical-align: center; transition-property: width; transition-duration: 0.15s; }
+.BBPagerDot.Active { width: 24px; }
+.BBPagerDotMark {
+  width: 8px;
+  height: 8px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-radius: 4px;
+  background-color: #cbbca640;
+  transition-property: background-color, width;
+  transition-duration: 0.15s;
+}
+.BBPagerDot:hover .BBPagerDotMark { background-color: #ffffffaa; }
+.BBPagerDot.Active .BBPagerDotMark { width: 18px; background-color: #96dbd0; }
+.BBTimelineTime { horizontal-align: center; margin-top: 2px; font-family: block; font-size: 11px; color: #cbbca6; }
+
+/* ---------- compact ---------- */
+.BBCompact .BBHeader { height: 62px; padding: 10px 12px 8px 12px; }
+.BBCompact .BBHeroButton { width: 42px; height: 42px; border-radius: 21px; }
+.BBCompact .BBHeroQuestion { font-size: 22px; }
+.BBCompact .BBTitles { margin-left: 10px; }
+.BBCompact .BBBuildName { max-width: 200px; font-size: 13px; }
+.BBCompact .BBStatText { font-size: 12px; }
+.BBCompact .BBIconButton, .BBCompact .BBClose { width: 24px; height: 24px; border-radius: 12px; }
+.BBCompact .BBIconButton { margin-right: 4px; }
+.BBCompact .BBIconImg { width: 14px; height: 14px; }
+.BBCompact .BBTabs { padding: 0px; }
+.BBCompact .BBTab { height: 26px; }
+.BBCompact .BBTabText { font-size: 12px; }
+.BBCompact .BBBody { padding: 2px 12px 12px 12px; }
+.BBCompact .BBSection { margin-top: 10px; }
+.BBCompact .BBSectionTitle { font-size: 12px; }
+.BBCompact .BBSectionStat { font-size: 11px; }
+.BBCompact .BBCatName { font-size: 11px; }
+.BBCompact .BBItem { width: 38px; margin: 0px 4px 4px 0px; }
+.BBCompact .BBItemIcon { width: 34px; height: 34px; padding: 1px; border-radius: 7px; }
+.BBCompact .BBItemSlot { width: 34px; height: 34px; }
+.BBCompact .BBItemCost, .BBCompact .BBItemStat { font-size: 10px; }
+.BBCompact .BBSkillRow { height: 17px; }
+.BBCompact .BBSkillIcon, .BBCompact .BBSkillIconSpacer { width: 15px; height: 15px; margin-right: 5px; }
+.BBCompact .BBSkillIconSpacer { height: 11px; }
+.BBCompact .BBSkillRow.BBSkillHead { height: 11px; }
+.BBCompact .BBSkillCell { max-width: 15px; height: 15px; }
+.BBCompact .BBSkillCell.BBSkillStep { height: 11px; }
+.BBCompact .BBSkillCellText { font-size: 8px; }
+.BBCompact .BBSkillStepText { font-size: 8px; }
+.BBCompact .BBMaxOrder { height: 26px; margin-top: 8px; }
+.BBCompact .BBMaxIcon { width: 22px; height: 22px; border-radius: 5px; }
+.BBCompact .BBChevron { width: 18px; height: 22px; }
+.BBCompact .BBChevronStroke { width: 7px; height: 7px; }
+.BBCompact .BBNotes { font-size: 12px; line-height: 17px; }
+.BBCompact .BBMatchRow { height: 44px; padding: 0px 6px 0px 8px; }
+.BBCompact .BBMatchResult { width: 44px; }
+.BBCompact .BBMatchWin { font-size: 11px; }
+.BBCompact .BBMatchPlayer { width: 70px; font-size: 12px; }
+.BBCompact .BBMatchKda { width: 56px; }
+.BBCompact .BBMatchKdaLine { font-size: 12px; }
+.BBCompact .BBMatchItems { width: 120px; margin-left: 4px; }
+.BBCompact .BBMatchItem { width: 18px; height: 18px; margin: 1px; }
+.BBCompact .BBMatchSoulsText { font-size: 12px; }
+.BBCompact .BBSoulIcon { width: 12px; height: 12px; }
+.BBCompact .BBMatchToggle { margin-left: 4px; }
+.BBCompact .BBTimelineItem { width: 35px; }
+.BBCompact .BBTimelineIcon { width: 28px; height: 28px; border-radius: 5px; }
+.BBCompact .BBPagerLabel { font-size: 10px; margin-right: 6px; }
+.BBCompact .BBPick { width: 74px; height: 78px; }
+.BBCompact .BBPickRow { height: 82px; }
+.BBCompact .BBPickIcon { width: 32px; height: 32px; }
+.BBCompact .BBBuildOption { height: 30px; }
+.BBCompact .BBBuildOptionName { font-size: 13px; }
+.BBCompact .BBSettingRow { height: 30px; }
+.BBCompact .BBSettingLabel { font-size: 12px; }

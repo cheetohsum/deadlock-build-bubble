@@ -1,0 +1,15 @@
+{
+  "name": "deadlock-build-bubble",
+  "version": "0.10.0",
+  "private": true,
+  "description": "Deadlock Panorama addon: recommended build, notes and skill path for your hero in a bubble.",
+  "scripts": {
+    "gen": "node tools/gen-data.js",
+    "build": "node tools/build.js",
+    "install-mod": "node tools/build.js --install",
+    "gui": "node gui/server.js"
+  },
+  "engines": {
+    "node": ">=22.2"
+  }
+}

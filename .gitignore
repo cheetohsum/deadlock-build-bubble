@@ -1,0 +1,7 @@
+node_modules/
+# Downloaded API data, icons and the gameinfo.gi backup
+cache/
+# Build output (the .vpk is attached to GitHub releases instead)
+out/
+# Your settings (game path, pins, optional API key)
+config.json
