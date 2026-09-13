@@ -29,7 +29,8 @@
     font: 600 34px "Bahnschrift SemiCondensed", sans-serif; letter-spacing: 4px; color: #ff9d3c; opacity: .6;
   }
   #hud { position: absolute; inset: 0; }
-  #hud > .pn-Panel:not(#BuildBubbleRoot):not(#BuildBubbleTip):not(.BBDragGhost) { display: none; }
+  #hud > .pn-Panel:not(#BuildBubbleRoot):not(#BuildBubbleTip):not(.BBDragGhost):not(.BBDropCatcher) { display: none; }
+  #hud > .BBDropCatcher { position: absolute; left: 0; top: 0; z-index: 10000; }
   /* The bubble's own tooltip and the drag ghost are placed by script (style.position -> left/top). */
   #BuildBubbleTip, #hud > .BBDragGhost { position: absolute; left: 0; top: 0; pointer-events: none; }
   #BuildBubbleTip { z-index: 10001; line-height: 1.4; }

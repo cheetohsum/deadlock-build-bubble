@@ -261,6 +261,21 @@ ghost2.winPos = { x: 500, y: 300 }; runTicks(1);
 header.handlers.DragEnd(header.id, ghost2);
 check(bubble().style.position === '240px 140px 0px', 'an unaccepted drop stays where the mouse was let go (got ' + bubble().style.position + ')');
 
+// While dragging, an invisible layer over the HUD takes the drop (so the shop's drop targets never get it).
+{
+  const cb3 = {};
+  header.handlers.DragStart(header.id, cb3);
+  const catcher = root.FindChildTraverse('BuildBubbleDropCatcher');
+  check(!!(catcher && !catcher.dead && catcher.handlers && catcher.handlers.DragDrop), 'a drag puts a drop layer over the HUD');
+  check(bubble().cls.has('BBMoving'), 'the bubble is highlighted while it is dragged');
+  cb3.displayPanel.winPos = { x: 600, y: 300 }; runTicks(3);
+  cb3.displayPanel.winPos = { x: 610, y: 310 }; runTicks(2);
+  check(!!catcher && catcher.handlers.DragDrop(header.id, cb3.displayPanel) === true, 'the drop layer accepts the drop');
+  check(!!catcher && catcher.dead && !bubble().cls.has('BBMoving'), 'the drop layer and the highlight are gone once dropped');
+  header.handlers.DragEnd(header.id, cb3.displayPanel);
+  check(!root.FindChildTraverse('BuildBubbleDropCatcher') && cb3.displayPanel.dead, 'nothing of the drag is left once it ends');
+}
+
 const tile = bubble().all((p) => p.cls.has('BBItem'))[0];
 check(tile && tile.events.onmouseover && tile.hittestchildren === false, 'item tooltips cover the whole card');
 check(bubble().all((p) => p.cls.has('BBMaxOrder') && p.events.onmouseover).length === 0, 'the max order has no tooltip of its own');

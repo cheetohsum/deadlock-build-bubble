@@ -487,10 +487,47 @@
     while (i > 0 && dist(t[i - 1]) > dist(t[i]) + 0.5) i--;
     return t[i];
   }
+  // Watchdog: a drag whose ghost is gone, whose bubble got hidden, or that hasn't moved for a while is wound up, so the
+  // drop layer never outlives it.
+  var DRAG_IDLE_MS = 8000;
   function followGhost() {
     if (!dnd || dnd.dropped) return;
+    var before = dnd.last;
     moveWithGhost();
+    if (!dnd) return;
+    if (dnd.last !== before) dnd.moved = Date.now();
+    if (!valid(dnd.ghost) || !has(ui.root, 'BBShown') || Date.now() - dnd.moved > DRAG_IDLE_MS) {
+      log('drag: wound up (' + (!valid(dnd.ghost) ? 'ghost gone' : !has(ui.root, 'BBShown') ? 'bubble hidden' : 'idle') + ')');
+      finishDrag();
+      return;
+    }
     $.Schedule(0.016, followGhost);
+  }
+  // While dragging, an invisible layer over the whole HUD takes the drop. Otherwise a drop over the shop lands on its
+  // item slots (real drop targets), which could leave the shop waiting on a drag that isn't its own: it then wouldn't
+  // close or take clicks. The layer exists only during a drag.
+  function dropCatcher() {
+    var c = $.CreatePanel('Panel', hudRoot, 'BuildBubbleDropCatcher');
+    c.AddClass('BBDropCatcher');
+    $.RegisterEventHandler('DragEnter', c, function () { return !!dnd; });
+    $.RegisterEventHandler('DragDrop', c, function () { return acceptDrop(); });
+    return c;
+  }
+  // The drop is ours: the bubble stays where the ghost last put it.
+  function acceptDrop() {
+    if (!dnd) return false;
+    dnd.dropped = true;
+    finishDrag();
+    return true;
+  }
+  // Ends our side of a drag: drop layer gone, highlight off, placement saved. Safe to call more than once.
+  function finishDrag() {
+    if (!dnd) return;
+    var d = dnd;
+    dnd = null;
+    try { if (d.catcher && d.catcher.IsValid()) d.catcher.DeleteAsync(0); } catch (e) {}
+    if (ui.root) ui.root.RemoveClass('BBMoving');
+    savePlacement();
   }
   function enableDrag(handle) {
     if (typeof handle.SetDraggable !== 'function' || typeof $.RegisterEventHandler !== 'function') return false;
@@ -504,7 +541,9 @@
         callbacks.offsetX = 0;
         callbacks.offsetY = 0;
         hideTip();
-        dnd = { ghost: ghost, from: rootPosition(), start: null, last: null, frames: 0, dropped: false, trail: [] };
+        if (dnd) finishDrag();   // a previous drag that never ended
+        dnd = { ghost: ghost, from: rootPosition(), start: null, last: null, frames: 0, dropped: false, trail: [], moved: Date.now() };
+        dnd.catcher = dropCatcher();
         ui.root.AddClass('BBMoving');
         followGhost();
         return true;
@@ -512,11 +551,7 @@
       // Accept our own drop: Panorama slides the ghost of an unaccepted drop back to where the drag began,
       // and the bubble used to follow it home.
       // No new reading at the drop itself: by then the game may already have reset the ghost.
-      var accept = function () {
-        if (!dnd) return false;
-        dnd.dropped = true;
-        return true;
-      };
+      var accept = acceptDrop;
       var hover = function () { return !!dnd; };
       [handle, ui.root].forEach(function (target) {
         $.RegisterEventHandler('DragEnter', target, hover);
@@ -529,9 +564,7 @@
           log('drag: drop was not accepted; placed where it was let go');
         }
         if (dnd && !dnd.start) log('drag: no ghost position reported');
-        dnd = null;
-        ui.root.RemoveClass('BBMoving');
-        savePlacement();
+        finishDrag();
         try { if (dragged && dragged.IsValid()) dragged.DeleteAsync(0); } catch (e) {}
         return true;
       });

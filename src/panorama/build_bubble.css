@@ -62,7 +62,7 @@
   box-shadow: #000000b0 0px 8px 28px 0px;
   z-index: 2;
 }
-.BBMoving .BBFrame { box-shadow: #96dbd088 0px 0px 18px 0px; }
+.BBMoving .BBFrame { box-shadow: #e3d3b68c 0px 0px 18px 0px; }
 
 /* ---------- header ---------- */
 /* The header stacks its wear layers and the row; the row has the padding and lays out the portrait, names, buttons. */
@@ -373,6 +373,8 @@
 .BBTipText { max-width: 300px; font-family: sans; font-size: 14px; color: #e9e3d8; }
 /* The invisible panel Panorama drags around while the bubble is being moved. */
 .BBDragGhost { width: 8px; height: 8px; opacity: 0; }
+/* Invisible layer over the whole HUD during a drag only: it takes the drop so the game's own drop targets never do. */
+.BBDropCatcher { width: 100%; height: 100%; z-index: 1000; background-color: #00000000; }
 
 /* Close button: an X drawn with two bars so it sits dead centre regardless of font metrics. */
 .BBClose {
