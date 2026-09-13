@@ -2,7 +2,7 @@
 // BB_DATA and BB_SETTINGS are prepended by tools/build.js from tools/gen-data.js output.
 'use strict';
 (function () {
-  var VERSION = '0.11.0';
+  var VERSION = '0.11.1';
   var TAG = '[BuildBubble] ';
   var SOURCES = ['standard', 'pro', 'winrate'];
   var SOURCE_LABEL = { standard: 'Community', pro: 'Pro', winrate: 'Top WR' };
