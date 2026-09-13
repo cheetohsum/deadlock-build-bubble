@@ -89,6 +89,22 @@ const server = http.createServer(async (req, res) => {
       if (!fs.existsSync(file)) return send(res, 404, 'not built yet', 'text/plain');
       return send(res, 200, fs.readFileSync(file), TYPES[path.extname(file)] || 'application/octet-stream');
     }
+    // Game textures the bubble's stylesheet uses, fetched once from the asset CDN and cached. Serving them from here
+    // keeps them same-origin, which the preview's CSS masks need.
+    const asset = /^\/asset\/([\w/.-]+\.png)$/.exec(url.pathname);
+    if (asset && req.method === 'GET') {
+      if (asset[1].includes('..')) return send(res, 400, 'bad path', 'text/plain');
+      const file = path.join(CACHE, 'assets', asset[1]);
+      if (!fs.existsSync(file)) {
+        const r = await fetch('https://assets-bucket.deadlock-api.com/assets-api-res/images/' + asset[1]);
+        // The CDN answers missing files with an HTML page, so check it really sent an image.
+        if (!r.ok || !/^image\//.test(r.headers.get('content-type') || '')) return send(res, 404, 'not found', 'text/plain');
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
+      }
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'max-age=86400' });
+      return res.end(fs.readFileSync(file));
+    }
     if (url.pathname === '/api/status') return send(res, 200, status());
     if (url.pathname === '/api/config' && req.method === 'GET') return send(res, 200, { config: loadConfig(), defaults: DEFAULT_CONFIG });
     if (url.pathname === '/api/config' && req.method === 'POST') {

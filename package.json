@@ -1,6 +1,6 @@
 {
   "name": "deadlock-build-bubble",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "description": "Deadlock Panorama addon: recommended build, notes and skill path for your hero in a bubble.",
   "scripts": {

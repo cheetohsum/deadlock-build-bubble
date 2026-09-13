@@ -88,7 +88,8 @@ mod overrides `hud.xml`, so it has to match the current stock HUD (fetched from 
   Panorama stand-in.
 
 Settings live in `config.json` (created on first save). `pakNumber` defaults to 87; change it if another mod uses
-that slot.
+that slot. `maxBuilds` (18) and `maxProMatches` (15), also in the manager as **Builds to load** and **Pro matches to
+load**, set how many builds per tab and recent pro matches each hero gets on the next Refresh data.
 
 ## License
 

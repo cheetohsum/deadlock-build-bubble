@@ -56,6 +56,7 @@
 
   select, input[type=number], input[type=text], input[type=password] { background: #0f0e0c; border: 1px solid var(--line2); border-radius: 5px; padding: 5px 8px; min-width: 0; }
   input[type=range] { accent-color: var(--teal); width: 100%; }
+  .row input.num { width: 72px; text-align: right; }
   .rankRow { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; min-height: 36px; }
   .rankRow img { width: 34px; height: 34px; object-fit: contain; flex: none; }
   .rankRow b { display: block; font: 600 15px var(--display); letter-spacing: 1px; color: var(--text); }
@@ -194,6 +195,13 @@
       <label for="proBadge" style="display:block;margin-top:16px">Pro rank floor</label>
       <div class="rankRow" id="proBadgeVal"></div>
       <input type="range" id="proBadge">
+
+      <div class="row" style="margin-top:18px"><label for="maxBuilds">Builds to load
+        <span class="info" tabindex="0" role="img" aria-label="About builds to load">i<span class="infoTip">The most builds listed for each hero on the COMMUNITY and PRO tabs (the build menu shows six to a page). PRO can list fewer when not enough leaderboard players have published builds. More builds make Refresh data slower and the mod a bit bigger. Takes effect after Refresh data, then Install.</span></span></label>
+        <input type="number" id="maxBuilds" class="num" min="1" max="60" step="1"></div>
+      <div class="row"><label for="maxProMatches">Pro matches to load
+        <span class="info" tabindex="0" role="img" aria-label="About pro matches to load">i<span class="infoTip">The most recent matches by top leaderboard players listed for each hero on the PRO tab (five to a page), from the last three weeks. Heroes with fewer recent pro games list fewer. Takes effect after Refresh data, then Install.</span></span></label>
+        <input type="number" id="maxProMatches" class="num" min="1" max="45" step="1"></div>
 
       <div class="row" style="margin-top:18px"><label>Pinned builds
         <span class="info" tabindex="0" role="img" aria-label="About pinned builds">i<span class="infoTip">Choose a hero and enter a build's ID number (the hero_build_id shown for builds on deadlock-api.com). That build becomes the first COMMUNITY build for the hero, marked PINNED. It takes effect after Refresh data, then Install.</span></span></label></div>
@@ -432,6 +440,18 @@ async function init() {
     paintRank(id);
     input.oninput = () => paintRank(id);
     input.onchange = () => { cfg[id] = BADGE_VALUES[+input.value]; save(); };
+  }
+  // How much the data refresh loads; a typed number is kept within the field's range.
+  for (const id of ['maxBuilds', 'maxProMatches']) {
+    const input = $('#' + id);
+    input.value = cfg[id];
+    input.onchange = () => {
+      const n = Math.round(Number(input.value));
+      const v = input.value !== '' && Number.isFinite(n) ? Math.min(+input.max, Math.max(+input.min, n)) : cfg[id];
+      input.value = v;
+      cfg[id] = v;
+      save();
+    };
   }
   bindSeg('source', 'defaultSource');
   bindSeg('position', 'position');

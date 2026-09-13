@@ -160,6 +160,17 @@
     set text(v) { this._el.textContent = String(v).replace(/^\u200B/, ''); }
     get hittest() { return this._el.style.pointerEvents !== 'none'; }
     set hittest(v) { this._el.style.pointerEvents = v ? '' : 'none'; }
+    get hittestchildren() { return this._el.dataset.bbNoHitKids !== '1'; }
+    set hittestchildren(v) {
+      const doc = this._el.ownerDocument;
+      if (!doc.getElementById('bbNoHitKids')) {
+        const s = doc.createElement('style');
+        s.id = 'bbNoHitKids';
+        s.textContent = '[data-bb-no-hit-kids="1"] * { pointer-events: none !important; }';
+        doc.head.appendChild(s);
+      }
+      if (v) delete this._el.dataset.bbNoHitKids; else this._el.dataset.bbNoHitKids = '1';
+    }
     AddClass(c) { this._el.classList.add(c); }
     RemoveClass(c) { this._el.classList.remove(c); }
     SetHasClass(c, v) { this._el.classList.toggle(c, !!v); }
@@ -264,6 +275,11 @@
       // (text) or as a drop-shadow filter (images).
       .replace(/text-shadow:\s*(-?[\d.]+px)\s+(-?[\d.]+px)\s+([\d.]+px)\s+[\d.]+\s+(#[0-9a-fA-F]{3,8});/g, 'text-shadow: $1 $2 $3 $4, $1 $2 $3 $4;')
       .replace(/img-shadow:\s*(-?[\d.]+px)\s+(-?[\d.]+px)\s+([\d.]+px)\s+[\d.]+\s+(#[0-9a-fA-F]{3,8});/g, 'filter: drop-shadow($1 $2 $3 $4);')
+      // Game textures come through the manager (/asset), which fetches them from the asset CDN: CSS masks need
+      // same-origin images. Panorama's opacity-mask keeps what's light in the mask, so it becomes a luminance mask.
+      .replace(/url\("s2r:\/\/panorama\/images\/([^"]+?)(?:_psd|_png)?\.(?:vtex|vsvg)"\)/g, 'url("/asset/$1.png")')
+      .replace(/opacity-mask:\s*(url\("[^"]+"\))[^;]*;/g, 'mask-image: $1; mask-size: 100% 100%; mask-mode: luminance;')
+      .replace(/-s2-mix-blend-mode:\s*([\w-]+);/g, 'mix-blend-mode: $1;')
       .replace(/visibility:\s*collapse;/g, 'display: none;')
       .replace(/visibility:\s*visible;/g, 'display: flex;')
       .replace(/ignore-parent-flow:\s*true;/g, 'position: absolute; top: 0; right: 0;')

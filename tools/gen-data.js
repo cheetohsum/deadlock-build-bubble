@@ -138,6 +138,10 @@ function categoryLabel(name) {
 
 async function main() {
   const cfg = loadConfig();
+  // How much to load per hero (manager: "Builds to load", "Pro matches to load"), whole numbers within bounds.
+  const clampInt = (v, lo, hi, def) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : def; };
+  const BUILD_LIMIT = clampInt(cfg.maxBuilds, 1, 60, 18);
+  const MATCH_LIMIT = clampInt(cfg.maxProMatches, 1, 45, 15);
   const gamePath = findGamePath(cfg);
   const now = Math.floor(Date.now() / 1000);
 
@@ -353,7 +357,7 @@ async function main() {
 
     // Standard: the build dropdown's community builds - pinned first, then fresh weekly favourites,
     // fresh all-time favourites, and finally anything usable.
-    const STANDARD_BUILDS = 18, PRO_BUILDS = 12;   // the bubble pages them six at a time
+    const STANDARD_BUILDS = BUILD_LIMIT, PRO_BUILDS = BUILD_LIMIT;   // the bubble pages them six at a time
     const standards = [], standardSeen = new Set();
     const pinned = cfg.pinnedBuilds[String(h.id)];
     if (pinned) {
@@ -387,7 +391,7 @@ async function main() {
 
     // Recent matches by this hero's top leaderboard players (NA + EU), newest first.
     // Each player's item list mixes shop purchases and ability unlocks/upgrades, all with game times.
-    const RECENT_MATCHES = 15;   // the bubble shows them five to a page
+    const RECENT_MATCHES = MATCH_LIMIT;   // the bubble shows them five to a page
     const nameById = new Map();
     for (const region of ['NAmerica', 'Europe']) {
       const lb = await tryGet(`${API}/v1/leaderboard/${region}/${h.id}`, { entries: [] });
@@ -528,7 +532,8 @@ async function main() {
       // Names are short ("Ritualist+", "All"): the bubble shows badges and uses the names for tooltips.
       floors: WR_FLOORS.map((f) => ({ badge: f, name: f ? rankName(f).replace(/ 1$/, '') + '+' : 'All', img: badgeArt(f) })),
       defaultFloor: cfg.minBadgeWinrate,
-      icons: { logo: svgIcon('icons/deadlock_logo.vsvg'), gear: svgIcon('icons/icon_gear.vsvg'), soul: svgIcon('hud/icons/icon_soul.vsvg') },
+      icons: { logo: svgIcon('icons/deadlock_logo.vsvg'), gear: svgIcon('icons/icon_gear.vsvg'), soul: svgIcon('hud/icons/icon_soul.vsvg'),
+        tierCap: svgIcon('shop/tier_corner_cap.vsvg') },
     },
     heroes: heroOut,
     items: itemOut,

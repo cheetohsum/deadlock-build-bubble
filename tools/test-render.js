@@ -174,7 +174,8 @@ abilities.RemoveClass('gShopOpen'); runTicks();
 // Hero picker path: no hero class -> picker; pick one -> renders it.
 [...progress.cls].forEach((c) => progress.RemoveClass(c));
 hotkey(); runTicks(8);
-const picks = bubble().all((p) => p.cls.has('BBPick'));
+// Real hero tiles only (the last row is padded with invisible fillers).
+const picks = bubble().all((p) => p.cls.has('BBPick') && !p.cls.has('BBPickSpacer'));
 check(picks.length === Object.keys(BB.heroes).length, 'picker lists every hero when detection fails');
 // The grid is sorted by name, so the first tile is the alphabetically first hero.
 const firstByName = Object.values(BB.heroes).map((x) => x.name).sort()[0];
@@ -232,7 +233,7 @@ if (richHero && thinHero) {
 }
 
 // Dragging the header (Panorama drag-and-drop) moves the bubble by as much as the drag ghost moves.
-const header = bubble().all((p) => p.cls.has('BBHeader'))[0];
+const header = bubble().all((p) => p.cls.has('BBHeaderRow'))[0];
 check(header.draggable === true && !!(header.handlers && header.handlers.DragStart), 'header is draggable');
 const dragCallbacks = {};
 header.handlers.DragStart(header.id, dragCallbacks);
@@ -247,6 +248,42 @@ check(bubble().style.position === '120px 60px 0px' && bubble().cls.has('BBPlaced
 const savedPlace = JSON.parse($.persistentStorage.store.build_bubble_place || 'null');
 check(!!(savedPlace && savedPlace.pos && savedPlace.pos[0] === 120 && savedPlace.pos[1] === 60), 'dropped position is remembered');
 check(ghost.dead, 'drag ghost is removed on drop');
+
+// An unaccepted drop: the ghost slides back toward the start before DragEnd; the bubble stays where it was let go.
+const cb2 = {};
+header.handlers.DragStart(header.id, cb2);
+const ghost2 = cb2.displayPanel;
+ghost2.winPos = { x: 500, y: 300 }; runTicks(3);
+ghost2.winPos = { x: 560, y: 340 }; runTicks(1);
+ghost2.winPos = { x: 620, y: 380 }; runTicks(1);
+ghost2.winPos = { x: 560, y: 340 }; runTicks(1);
+ghost2.winPos = { x: 500, y: 300 }; runTicks(1);
+header.handlers.DragEnd(header.id, ghost2);
+check(bubble().style.position === '240px 140px 0px', 'an unaccepted drop stays where the mouse was let go (got ' + bubble().style.position + ')');
+
+const tile = bubble().all((p) => p.cls.has('BBItem'))[0];
+check(tile && tile.events.onmouseover && tile.hittestchildren === false, 'item tooltips cover the whole card');
+check(bubble().all((p) => p.cls.has('BBMaxOrder') && p.events.onmouseover).length === 0, 'the max order has no tooltip of its own');
+check(bubble().all((p) => p.type === 'Button' && ['BBPagerDot', 'BBPagerArrow', 'BBPinButton'].some((c) => p.cls.has(c))).length === 0, 'pager and pin controls are plain panels');
+
+// A scrollbar like Panorama's (a VerticalScrollBar with a ScrollThumb) belongs to the body itself, so it outlives
+// the body's content being cleared on each render.
+{
+  const body = bubble().all((p) => p.cls.has('BBBody'))[0];
+  const sb = add(body, 'Panel', 'VerticalScrollBar');
+  const th = add(sb, 'Panel', '');
+  th.AddClass('ScrollThumb');
+  const clear = body.RemoveAndDeleteChildren;
+  body.RemoveAndDeleteChildren = function () { this.children = this.children.filter((c) => c !== sb); clear.call(this); this.children.push(sb); };
+  clickTab('Community'); runTicks(3);
+  clickTab('Pro'); runTicks(3);
+  check(/color-stop/.test(sb.style.backgroundColor || '') && /cbbca666/.test(th.style.backgroundColor || ''), 'the body scrollbar is styled from script (tapered track and thumb)');
+  if (sb.events.onmouseover) sb.events.onmouseover();
+  check(/e9dcc6/.test(th.style.backgroundColor || ''), 'the scrollbar thumb glows beige while hovered');
+  if (sb.events.onmouseout) sb.events.onmouseout();
+  check(/cbbca666/.test(th.style.backgroundColor || ''), 'the scrollbar thumb settles back after hover');
+  body.RemoveAndDeleteChildren = clear;
+}
 
 const errors = logs.filter((l) => /error|failed/i.test(l));
 console.log(`heroes ${Object.keys(BB.heroes).length}, max panels in bubble ${maxPanels}, log lines ${logs.length}`);

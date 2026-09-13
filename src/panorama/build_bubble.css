@@ -58,22 +58,21 @@
   max-height: 100%;
   flow-children: down;
   background-color: gradient( linear, 0% 0%, 0% 100%, from( #221e19d9 ), to( #121110d9 ) );
-  border: 1px solid #cbbca655;
   border-radius: 12px;
   box-shadow: #000000b0 0px 8px 28px 0px;
   z-index: 2;
 }
-.BBMoving .BBFrame { border: 1px solid #96dbd0; }
+.BBMoving .BBFrame { box-shadow: #96dbd088 0px 0px 18px 0px; }
 
 /* ---------- header ---------- */
+/* The header stacks its wear layers and the row; the row has the padding and lays out the portrait, names, buttons. */
 .BBHeader {
   width: 100%;
   height: 72px;
-  flow-children: right;
-  padding: 12px 14px 10px 14px;
   background-color: gradient( linear, 0% 0%, 100% 0%, from( #583f2166 ), to( #58392100 ) );
   border-radius: 12px 12px 0px 0px;
 }
+.BBHeaderRow { width: 100%; height: 100%; flow-children: right; padding: 12px 14px 10px 14px; z-index: 1; }
 .BBHeader:hover { background-color: gradient( linear, 0% 0%, 100% 0%, from( #583f2188 ), to( #58392111 ) ); }
 .BBHeroButton {
   width: 50px;
@@ -223,18 +222,7 @@
 }
 /* The list inside the dropdown, measured for the open / close fold. */
 .BBMenuInner { width: 100%; flow-children: down; padding: 2px 14px 8px 14px; }
-.BBBuildMenu VerticalScrollBar {
-  width: 6px;
-  margin-right: 4px;
-  border-radius: 3px;
-  background-color: #ffffff08;
-}
-.BBBuildMenu VerticalScrollBar .ScrollThumb {
-  min-height: 24px;
-  border-radius: 3px;
-  background-color: #cbbca655;
-}
-.BBBuildMenu VerticalScrollBar:hover .ScrollThumb { background-color: #96dbd0aa; }
+.BBBuildMenu VerticalScrollBar .ScrollThumb { min-height: 24px; }
 /* No scrollbar flicker while the dropdown eases open or shut. */
 .BBBuildMenu.BBFolding VerticalScrollBar { opacity: 0; }
 .BBBuildOption {
@@ -300,6 +288,8 @@
 }
 .BBPinButton.On .BBPinHead,
 .BBPinButton.On .BBPinNeedle { background-color: #96dbd0; }
+.BBPinButton:hover .BBPinHead,
+.BBPinButton:hover .BBPinNeedle { background-color: #ffffff; }
 /* Pin mark: shows a build is pinned, in front of its name in the dropdown and the header. */
 .BBPinMark { margin-right: 8px; }
 .BBPinMark .BBPinHead,
@@ -582,20 +572,33 @@
   padding: 2px 16px 14px 16px;
 }
 
-/* Scrollbar: a slim cream thumb on a faint track, teal while hovered or dragged. */
-.BBBody VerticalScrollBar {
+/* Scrollbars (body and build list): a slim track and thumb that both fade out toward their ends; the thumb glows
+   beige while hovered or dragged, like the other hover effects. Every state is set so the game's own never shows. */
+.BBBody VerticalScrollBar,
+.BBBuildMenu VerticalScrollBar {
   width: 6px;
   margin-right: 4px;
   border-radius: 3px;
-  background-color: #ffffff08;
+  background-color: gradient( linear, 0% 0%, 0% 100%, from( #ffffff00 ), color-stop( 0.18, #ffffff0a ), color-stop( 0.82, #ffffff0a ), to( #ffffff00 ) );
 }
-.BBBody VerticalScrollBar .ScrollThumb {
-  min-height: 36px;
+.BBBody VerticalScrollBar .ScrollThumb,
+.BBBuildMenu VerticalScrollBar .ScrollThumb {
   border-radius: 3px;
-  background-color: #cbbca655;
+  background-color: gradient( linear, 0% 0%, 0% 100%, from( #cbbca600 ), color-stop( 0.22, #cbbca666 ), color-stop( 0.78, #cbbca666 ), to( #cbbca600 ) );
+  box-shadow: #00000000 0px 0px 0px 0px;
 }
-.BBBody VerticalScrollBar:hover .ScrollThumb { background-color: #96dbd0aa; }
-.BBBody VerticalScrollBar:active .ScrollThumb { background-color: #96dbd0; }
+.BBBody VerticalScrollBar:hover .ScrollThumb,
+.BBBuildMenu VerticalScrollBar:hover .ScrollThumb,
+.BBBody VerticalScrollBar .ScrollThumb:hover,
+.BBBuildMenu VerticalScrollBar .ScrollThumb:hover,
+.BBBody VerticalScrollBar:active .ScrollThumb,
+.BBBuildMenu VerticalScrollBar:active .ScrollThumb,
+.BBBody VerticalScrollBar .ScrollThumb:active,
+.BBBuildMenu VerticalScrollBar .ScrollThumb:active {
+  background-color: gradient( linear, 0% 0%, 0% 100%, from( #e9dcc600 ), color-stop( 0.22, #e9dcc6d9 ), color-stop( 0.78, #e9dcc6d9 ), to( #e9dcc600 ) );
+  box-shadow: #e3d3b640 0px 0px 6px 0px;
+}
+.BBBody VerticalScrollBar .ScrollThumb { min-height: 36px; }
 
 /* Section heading: title with an optional stat on the same line, underlined. */
 .BBSection { width: 100%; flow-children: down; margin-top: 14px; }
@@ -662,10 +665,13 @@
   flow-children: down;
 }
 /* Holder the size of the icon: during a change the outgoing icon stacks on top of the incoming one. */
+/* The holder carries the card's drop shadow: the card itself is masked, which would cut the shadow off. */
 .BBItemSlot {
   width: 40px;
   height: 40px;
   horizontal-align: center;
+  border-radius: 8px;
+  box-shadow: #000000aa 0px 3px 6px 0px;
   transition-property: transform;
   transition-duration: 0.14s;
   transition-timing-function: ease-out;
@@ -838,7 +844,9 @@
   transition-timing-function: ease-out;
 }
 /* A max-order icon: the slot moves when the order changes, the plate inside grows on hover. */
-.BBMaxSlot { vertical-align: center; }
+/* Padding so the icon's shadow stays inside the slot while the slot animates (an animating panel clips to its own
+   bounds); the negative margins cancel it out in the layout. */
+.BBMaxSlot { vertical-align: center; padding: 3px 7px 10px 7px; margin: -3px -7px -10px -7px; }
 .BBMaxIcon:hover { transform: scale3d( 1.12, 1.12, 1 ); }
 .BBChevron {
   width: 24px;
@@ -890,17 +898,18 @@
 .BBPicker { width: 100%; flow-children: down; margin-top: 12px; margin-bottom: 6px; }
 .BBPickRow { width: 100%; height: 90px; flow-children: right; }
 .BBPick {
-  width: 84px;
+  width: fill-parent-flow( 1.0 );
   height: 86px;
-  margin: 0px 5px 4px 0px;
+  margin: 0px 4px 4px 0px;
   flow-children: down;
 }
-.BBPickIcon, .BBNameStack { transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
-.BBPickIcon { width: 40px; height: 40px; horizontal-align: center; margin-top: 4px; }
+.BBPickFace, .BBNameStack { transition-property: transform; transition-duration: 0.16s; transition-timing-function: ease-out; }
+.BBPickFace { width: 42px; height: 42px; horizontal-align: center; margin-top: 4px; }
+.BBPickIcon { width: 100%; height: 100%; }
 .BBPickArt { horizontal-align: center; }
 .BBNameStack { horizontal-align: center; margin-top: 6px; }
 /* Hover: the portrait tilts left and the name right. */
-.BBPick:hover .BBPickIcon { transform: rotateZ( -6deg ); }
+.BBPick:hover .BBPickFace { transform: rotateZ( -6deg ); }
 .BBPick:hover .BBNameStack { transform: rotateZ( 4deg ); }
 .BBPickName {
   horizontal-align: center;
@@ -914,7 +923,7 @@
    set 2px down and to the right, behind them. It lights up on hover and is solid for the chosen one or a press; the
    text or image in front keeps its own colour. Text uses an unblurred text-shadow (Panorama: x y blur strength
    colour); images get a white-washed copy stacked behind them. */
-.BBPickName, .BBBuildName, .BBFloorName, .BBBuildOptionName { text-shadow: 2px 2px 0px 1.0 #ffffff30; }
+.BBPickName, .BBBuildName, .BBFloorName, .BBBuildOptionName { text-shadow: 1px 1px 0px 1.0 #ffffff30; }
 .BBPick:hover .BBPickName, .BBBuildPicker:hover .BBBuildName, .BBFloorPicker:hover .BBFloorName, .BBFloorOption:hover .BBFloorName,
 .BBBuildOption:hover .BBBuildOptionName {
   text-shadow: 1px 1px 0px 1.0 #ffffffa6;
@@ -925,7 +934,7 @@
   text-shadow: 1px 1px 0px 1.0 #ffffff;
 }
 .BBBadgeStack { vertical-align: center; }
-.BBDropCopy { transform: translate3d( 2px, 2px, 0px ); opacity: 0.2; transition-property: opacity, transform; transition-duration: 0.12s; }
+.BBDropCopy { transform: translate3d( 1px, 1px, 0px ); opacity: 0.14; transition-property: opacity; transition-duration: 0.12s; }
 .BBPick:hover .BBDropCopy, .BBFloorPicker:hover .BBDropCopy, .BBFloorOption:hover .BBDropCopy { opacity: 0.65; transform: translate3d( 1px, 1px, 0px ); }
 .BBPick.Active .BBDropCopy, .BBPick:active .BBDropCopy, .BBFloorPicker.BBMenuOpen .BBDropCopy, .BBFloorPicker:active .BBDropCopy,
 .BBFloorOption.Active .BBDropCopy, .BBFloorOption:active .BBDropCopy { opacity: 1; transform: translate3d( 1px, 1px, 0px ); }
@@ -933,7 +942,7 @@
 .BBFloorOption.Disabled .BBDropCopy, .BBFloorOption.Disabled:hover .BBDropCopy { opacity: 0; }
 /* Animations off: hover effects snap. */
 .BBNoAnim .BBStroke, .BBNoAnim .BBBuildLine, .BBNoAnim .BBFloorLine, .BBNoAnim .BBFloorOptFace,
-.BBNoAnim .BBPickIcon, .BBNoAnim .BBNameStack, .BBNoAnim .BBDropCopy { transition-duration: 0s; }
+.BBNoAnim .BBPickFace, .BBNoAnim .BBNameStack, .BBNoAnim .BBDropCopy { transition-duration: 0s; }
 .BBNoAnim .BBItemSlot, .BBNoAnim .BBSkillIcon, .BBNoAnim .BBMaxIcon, .BBNoAnim .BBTimelineIcon { transition-duration: 0s; }
 .BBTextButton { margin: 8px 2px; }
 .BBTextButton Label { font-family: sans; font-size: 12px; color: #f2efe9; }
@@ -1093,8 +1102,85 @@
 .BBPagerDot.Active .BBPagerDotMark { width: 18px; background-color: #96dbd0; }
 .BBTimelineTime { horizontal-align: center; margin-top: 2px; font-family: block; font-size: 11px; color: #cbbca6; }
 
+/* ---------- worn paper (the shop's own textures) ---------- */
+/* Rough-edge masks from the shop's item cards: each item and ability icon gets one of the three, so the wear cuts
+   into the art and its frame. */
+.BBWear1 { opacity-mask: url("s2r://panorama/images/shop/catalog/cards/icon_mask01_psd.vtex"); }
+.BBWear2 { opacity-mask: url("s2r://panorama/images/shop/catalog/cards/icon_mask02_psd.vtex"); }
+.BBWear3 { opacity-mask: url("s2r://panorama/images/shop/catalog/cards/icon_mask03_psd.vtex"); }
+/* The shop's crumpled paper texture multiplied over each item card (it adds creases, not colour). */
+.BBCardPaper { width: 100%; height: 100%; background-size: 100% 100%; -s2-mix-blend-mode: multiply; }
+.BBPaper1 { background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_papertexture01_psd.vtex"); }
+.BBPaper2 { background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_papertexture02_psd.vtex"); }
+.BBPaper3 { background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_papertexture03_psd.vtex"); }
+/* The shop's paper-wear scuffs (light marks along the edges), so the wear shows at bubble size too. */
+.BBCardScuff { width: 100%; height: 100%; background-size: 100% 100%; opacity: 0.55; }
+.BBScuff1 { background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_paperwear01_psd.vtex"); }
+.BBScuff2 { background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_paperwear02_psd.vtex"); }
+.BBScuff3 { background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_paperwear03_psd.vtex"); }
+/* The rough-edge texture also multiplied over each card and ability icon, so the wear reads even where the mask
+   cut-out is faint. */
+.BBCardEdge { width: 100%; height: 100%; background-size: 100% 100%; -s2-mix-blend-mode: multiply; }
+.BBEdge1 { background-image: url("s2r://panorama/images/shop/catalog/cards/icon_mask01_psd.vtex"); }
+.BBEdge2 { background-image: url("s2r://panorama/images/shop/catalog/cards/icon_mask02_psd.vtex"); }
+.BBEdge3 { background-image: url("s2r://panorama/images/shop/catalog/cards/icon_mask03_psd.vtex"); }
+/* Tier corner tab (as on the shop's cards): a category-coloured triangle in the top-right corner with the tier in
+   Roman numerals. The triangle is a square turned 45deg and clipped by its box. */
+.BBTierCap { width: 25px; height: 25px; horizontal-align: right; vertical-align: top; overflow: clip; border-radius: 0px 7px 0px 0px; }
+.BBTierCapImg { width: 100%; height: 100%; }
+.BBTierCapShape { width: 24px; height: 24px; transform: translate3d( 5px, -12px, 0px ) rotateZ( 45deg ); background-color: #e3973c; }
+.BBWeapon .BBTierCapShape { background-color: #e3973c; }
+.BBVitality .BBTierCapShape { background-color: #7bbf45; }
+.BBSpirit .BBTierCapShape { background-color: #b67cf0; }
+/* The numeral spans the cap and is right-aligned, so it sits tucked into the corner whatever its width. */
+.BBTierNum { width: 100%; text-align: right; vertical-align: top; margin-top: 1px; padding-right: 2px; font-family: block; font-size: 11px; color: #1a1714; }
+.BBCompact .BBTierCap { width: 20px; height: 20px; }
+.BBCompact .BBTierNum { font-size: 9px; }
+/* The body sits on a faint copy of the shop's worn builds page (its blue left edge trimmed off). */
+.BBBodyWrap { width: 100%; }
+.BBPaperPage {
+  width: 100%;
+  height: 100%;
+  background-image: url("s2r://panorama/images/shop/catalog/catalog_shop_builds_bg_psd.vtex");
+  background-size: 104% 100%;
+  background-position: 100% 0%;
+  opacity: 0.16;
+}
+/* Light scuffs over the header (out of its row) and each tab, shaped to their corners. */
+.BBHeaderWear { ignore-parent-flow: true; border-radius: 12px 12px 0px 0px; }
+.BBHeaderWear.BBCardScuff { opacity: 0.35; background-size: cover; background-repeat: no-repeat; background-position: 50% 50%; }
+.BBTab .BBCardScuff { border-radius: 8px 8px 0px 0px; }
+.BBTabScuff { opacity: 0.25; background-size: cover; background-repeat: no-repeat; background-position: 50% 50%; }
+/* Each card's wear layers are turned or flipped (one of eight) and its worn edge set to one of three depths, so no
+   two cards look damaged the same way. */
+.BBTurn1 { transform: rotateZ( 90deg ); }
+.BBTurn2 { transform: rotateZ( 180deg ); }
+.BBTurn3 { transform: rotateZ( 270deg ); }
+.BBTurn4 { transform: scale3d( -1, 1, 1 ); }
+.BBTurn5 { transform: rotateZ( 90deg ) scale3d( -1, 1, 1 ); }
+.BBTurn6 { transform: scale3d( 1, -1, 1 ); }
+.BBTurn7 { transform: rotateZ( 270deg ) scale3d( -1, 1, 1 ); }
+.BBDepth0 { opacity: 0.6; }
+.BBDepth1 { opacity: 0.45; }
+.BBDepth2 { opacity: 0.3; }
+/* The shop's crumpled paper multiplied over the header and tabs, for creases. */
+.BBCrease {
+  width: 100%;
+  height: 100%;
+  ignore-parent-flow: true;
+  background-image: url("s2r://panorama/images/shop/catalog/cards/shopitem_papertexture02_psd.vtex");
+  /* One copy scaled to cover (as the shop sizes its textures): stretched it smeared into streaks, tiled its edges
+     repeated as seams. */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  -s2-mix-blend-mode: multiply;
+}
+.BBHeader .BBCrease { border-radius: 12px 12px 0px 0px; }
+
 /* ---------- compact ---------- */
-.BBCompact .BBHeader { height: 62px; padding: 10px 12px 8px 12px; }
+.BBCompact .BBHeader { height: 62px; }
+.BBCompact .BBHeaderRow { padding: 10px 12px 8px 12px; }
 .BBCompact .BBHeroButton { width: 42px; height: 42px; border-radius: 21px; }
 .BBCompact .BBHeroQuestion { font-size: 22px; }
 .BBCompact .BBTitles { margin-left: 10px; }
@@ -1142,9 +1228,11 @@
 .BBCompact .BBTimelineItem { width: 35px; }
 .BBCompact .BBTimelineIcon { width: 28px; height: 28px; border-radius: 5px; }
 .BBCompact .BBPagerLabel { font-size: 10px; margin-right: 6px; }
-.BBCompact .BBPick { width: 74px; height: 78px; }
+.BBCompact .BBPick { height: 78px; }
+/* Invisible fillers that keep the last picker row's tiles the same size as the rest. */
+.BBPickSpacer { opacity: 0; }
 .BBCompact .BBPickRow { height: 82px; }
-.BBCompact .BBPickIcon { width: 32px; height: 32px; }
+.BBCompact .BBPickFace { width: 32px; height: 32px; }
 .BBCompact .BBBuildOption { height: 30px; }
 .BBCompact .BBBuildOptionName { font-size: 13px; }
 .BBCompact .BBSettingRow { height: 30px; }

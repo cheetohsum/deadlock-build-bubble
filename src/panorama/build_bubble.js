@@ -2,7 +2,7 @@
 // BB_DATA and BB_SETTINGS are prepended by tools/build.js from tools/gen-data.js output.
 'use strict';
 (function () {
-  var VERSION = '0.10.1';
+  var VERSION = '0.11.0';
   var TAG = '[BuildBubble] ';
   var SOURCES = ['standard', 'pro', 'winrate'];
   var SOURCE_LABEL = { standard: 'Community', pro: 'Pro', winrate: 'Top WR' };
@@ -464,12 +464,28 @@
     } catch (e2) {}
     return null;
   }
+  // Samples the ghost each frame. A reading that jumps (the ghost reset to a corner, say) is ignored; good ones go into
+  // a short trail so a drop can be placed where the mouse was let go.
   function moveWithGhost() {
     var at = ghostAt();
     dnd.frames++;
     if (!at || dnd.frames < 2) return;   // the ghost reaches the cursor a frame after the drag starts
-    if (!dnd.start) { dnd.start = at; return; }
-    placeRoot(dnd.from[0] + at[0] - dnd.start[0], dnd.from[1] + at[1] - dnd.start[1]);
+    if (!dnd.start) { dnd.start = at; dnd.last = at; return; }
+    if (Math.abs(at[0] - dnd.last[0]) + Math.abs(at[1] - dnd.last[1]) > 500) return;
+    dnd.last = at;
+    var pos = [dnd.from[0] + at[0] - dnd.start[0], dnd.from[1] + at[1] - dnd.start[1]];
+    dnd.trail.push(pos);
+    if (dnd.trail.length > 90) dnd.trail.shift();
+    placeRoot(pos[0], pos[1]);
+  }
+  // Where the mouse was let go. An unaccepted drop slides the ghost straight back toward where the drag began, so walk
+  // back over the trail while it was closing in on the start; the point before that is the release.
+  function releasePoint() {
+    var t = dnd.trail, i = t.length - 1;
+    if (i < 1) return t[i] || null;
+    var dist = function (p) { return Math.abs(p[0] - dnd.from[0]) + Math.abs(p[1] - dnd.from[1]); };
+    while (i > 0 && dist(t[i - 1]) > dist(t[i]) + 0.5) i--;
+    return t[i];
   }
   function followGhost() {
     if (!dnd || dnd.dropped) return;
@@ -488,16 +504,16 @@
         callbacks.offsetX = 0;
         callbacks.offsetY = 0;
         hideTip();
-        dnd = { ghost: ghost, from: rootPosition(), start: null, frames: 0, dropped: false };
+        dnd = { ghost: ghost, from: rootPosition(), start: null, last: null, frames: 0, dropped: false, trail: [] };
         ui.root.AddClass('BBMoving');
         followGhost();
         return true;
       });
       // Accept our own drop: Panorama slides the ghost of an unaccepted drop back to where the drag began,
       // and the bubble used to follow it home.
+      // No new reading at the drop itself: by then the game may already have reset the ghost.
       var accept = function () {
         if (!dnd) return false;
-        if (!dnd.dropped) moveWithGhost();
         dnd.dropped = true;
         return true;
       };
@@ -507,7 +523,11 @@
         $.RegisterEventHandler('DragDrop', target, accept);
       });
       $.RegisterEventHandler('DragEnd', handle, function (panelId, dragged) {
-        if (dnd && !dnd.dropped) { moveWithGhost(); log('drag: drop was not accepted'); }
+        if (dnd && !dnd.dropped) {
+          var back = releasePoint();
+          if (back) placeRoot(back[0], back[1]);
+          log('drag: drop was not accepted; placed where it was let go');
+        }
         if (dnd && !dnd.start) log('drag: no ghost position reported');
         dnd = null;
         ui.root.RemoveClass('BBMoving');
@@ -666,6 +686,9 @@
   // Ease in-out (cubic): slow start, quick middle, soft landing.
   function smooth(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
   function scale3(s) { s = Math.max(0.001, s).toFixed(3); return 'scale3d( ' + s + ', ' + s + ', 1 )'; }
+  // End of an animation: drop the inline transform and opacity so the stylesheet applies again. Leaving even an
+  // identity transform set keeps the panel drawn as a separate layer, which clips the shadows of what's inside it.
+  function settle(p) { setStyle(p, 'transform', null); setStyle(p, 'opacity', null); }
   function tween(seconds, step, done) {
     // Animations off (cog menu): every change lands on its end state at once.
     if (BB_SETTINGS.animations === false) { step(1); if (done) done(); return; }
@@ -689,7 +712,7 @@
       var k = smooth(Math.max(0, (t - RECESS_PART) / (1 - RECESS_PART)));
       setStyle(p, 'transform', scale3(k));
       setStyle(p, 'opacity', String(Math.min(1, k * 1.5)));
-    }, function () { setStyle(p, 'transform', scale3(1)); setStyle(p, 'opacity', '1'); });
+    }, function () { settle(p); });
   }
   // Glide home from dx pixels away along an arc: rightward travellers pass over, leftward ones under.
   function arcHome(p, dx) {
@@ -697,7 +720,7 @@
     change(p, function (t) {
       var k = smooth(t);
       setStyle(p, 'transform', 'translate3d( ' + (dx * (1 - k)).toFixed(1) + 'px, ' + (-lift * Math.sin(Math.PI * k)).toFixed(1) + 'px, 0px )');
-    }, function () { setStyle(p, 'transform', 'translate3d( 0px, 0px, 0px )'); });
+    }, function () { settle(p); });
   }
   // Portrait pop: grows from 40% with a slight overshoot (ease-out-back).
   var popSeq = 0, portraitFace = null, pickerOpen = false;
@@ -857,7 +880,7 @@
       var k = Math.max(0, (t - RECESS_PART) / (1 - RECESS_PART));
       setStyle(p, 'transform', scale3(k > 0 ? backOut(k) : 0));
       setStyle(p, 'opacity', String(Math.min(1, k * 2)));
-    }, function () { setStyle(p, 'transform', scale3(1)); setStyle(p, 'opacity', '1'); });
+    }, function () { settle(p); });
   }
 
   // The number under an item: stays put when unchanged; on a rank-floor switch it counts to its new value and its
@@ -914,9 +937,17 @@
     var tile = el('Panel', parent, 'BBItem ' + (SLOT_CLASS[it[2]] || '') + ' BBT' + (it[3] || 1));
     // The icon sits in a holder of its own size, so a change can stack the outgoing icon on top of it.
     var holder = el('Panel', tile, 'BBItemSlot');
-    var icon = image(holder, 'BBItemIcon', it[4]);
-    itemNumber(tile, slot, stat ? 'BBItemStat' : 'BBItemCost', stat || thousands(it[1]), stat ? statColor : '');
-    tooltip(icon, it[0] + '  (' + thousands(it[1]) + ' souls)' + (statTip ? '\n' + statTip : '') + (note ? '\n\n' + note : ''));
+    // As in the shop: a rough-edge mask cuts into the card, with the paper texture laid over it.
+    var icon = image(holder, 'BBItemIcon BBWear' + wearOf(id), it[4]);
+    el('Panel', holder, 'BBCardPaper BBWear' + wearOf(id) + ' BBPaper' + (1 + variant(id, 1, 3)) + wearTurn(id, 2)).hittest = false;
+    el('Panel', holder, 'BBCardScuff BBWear' + wearOf(id) + ' BBScuff' + (1 + variant(id, 3, 3)) + wearTurn(id, 4)).hittest = false;
+    el('Panel', holder, 'BBCardEdge BBEdge' + (1 + variant(id, 5, 3)) + wearTurn(id, 6) + ' BBDepth' + variant(id, 7, 3)).hittest = false;
+    tierCorner(holder, it[3], it[2]);
+    // Top WR keeps its win rate under the card; the tier shows as the card's corner tab (no souls cost).
+    if (stat) itemNumber(tile, slot, 'BBItemStat', stat, statColor);
+    // The whole card shows the tooltip: its layers (corner tab, worn edges, the number) don't take the mouse.
+    tile.hittestchildren = false;
+    tooltip(tile, it[0] + '  (' + thousands(it[1]) + ' souls)' + (statTip ? '\n' + statTip : '') + (note ? '\n\n' + note : ''));
     if (slot != null) animateItem(holder, icon, slot, id);
   }
   // Slots are "group:position"; the same item in the same slot as last time stays still.
@@ -930,10 +961,23 @@
     if (old) {
       var ghost = el('Panel', holder, 'BBItemGhost ' + (SLOT_CLASS[old[2]] || '') + ' BBT' + (old[3] || 1));
       ghost.hittest = false;
-      image(ghost, 'BBItemIcon', old[4]).hittest = false;
+      image(ghost, 'BBItemIcon BBWear' + wearOf(base.items[slot]), old[4]).hittest = false;
       recess(ghost);
     }
     emerge(icon);
+  }
+
+  // Tier corner tab, as on the shop's cards: a category-coloured cap in the top-right corner with the tier numeral.
+  var ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+  var CAP_COLOR = { w: '#e3973c', v: '#7bbf45', s: '#b67cf0' };
+  function tierCorner(holder, tier, slot) {
+    var cap = el('Panel', holder, 'BBTierCap');
+    cap.hittest = false;
+    // The shop's own corner cap (a white triangle filling the top-right corner), tinted by category; a drawn one
+    // only if the image is missing.
+    if (ICONS.tierCap) setStyle(image(cap, 'BBTierCapImg', ICONS.tierCap), 'washColor', CAP_COLOR[slot] || CAP_COLOR.w);
+    else el('Panel', cap, 'BBTierCapShape');
+    el('Label', cap, 'BBTierNum', ROMAN[tier] || '');
   }
 
   // Item groups sit side by side while they fit on a line; a group is never split across lines
@@ -950,7 +994,7 @@
       setStyle(block, 'width', w + 'px');
       if (!startLine) { setStyle(block, 'marginLeft', GROUP_GAP + 'px'); used += GROUP_GAP; }
       used += w;
-      catName(block, gi, g.label);
+      if (g.label) catName(block, gi, g.label);
       g.fill(el('Panel', block, 'BBItemRow'));
     });
   }
@@ -984,7 +1028,7 @@
     packGroups(parent, table.map(function (tier, ti) {
       var rows = tier[1];
       return {
-        label: 'Tier ' + tier[0],
+        label: '',   // the cards' corner tabs show the tier
         count: rows.length,
         fill: function (row) {
           for (var j = 0; j < rows.length; j++) {
@@ -1002,10 +1046,20 @@
   // Ability icon on a dark plate. A few icons are black silhouettes (flagged by gen-data), so the image
   // alone is washed cream; the plate behind it stays dark.
   var DARK_ICON_WASH = '#e9e3d8';
+  // Wear: each icon gets one of the shop's three rough-edge masks (picked by id, so it always looks the same).
+  function wearOf(id) { return 1 + (Math.abs(Number(id) || 0) % 3); }
+  // A fixed "random" pick per item and layer: every card's damage differs, but never changes between renders.
+  function variant(id, salt, n) { return Math.floor(Math.abs(Number(id) || 0) / (1 + salt * 131)) % n; }
+  // Classes that turn / flip a wear layer (one of eight) and set how deep the worn edge goes (one of three).
+  function wearTurn(id, salt) { return ' BBTurn' + variant(id, salt, 8); }
   function abilityIcon(parent, cls, ab) {
+    // The wear mask goes on the image, not the plate: a mask on the plate also cut off its drop shadow (once the
+    // mask texture had loaded, i.e. from the second render on).
     var plate = el('Panel', parent, cls);
-    var img = image(plate, 'BBAbilityImg', ab[2]);
+    plate.hittestchildren = false;   // the plate as a whole takes the mouse, so its tooltip shows anywhere over it
+    var img = image(plate, 'BBAbilityImg BBWear' + wearOf(ab[0]), ab[2]);
     if (ab[3]) setStyle(img, 'washColor', DARK_ICON_WASH);
+    el('Panel', plate, 'BBCardEdge BBEdge' + (1 + variant(ab[0], 5, 3)) + wearTurn(ab[0], 6) + ' BBDepth' + variant(ab[0], 7, 3)).hittest = false;
     return plate;
   }
 
@@ -1050,7 +1104,6 @@
     if (track) changes.next.maxed = maxed.slice();
     if (!maxed.length) return;
     var order = el('Panel', skillWrap, 'BBMaxOrder');
-    tooltip(order, 'Order the abilities reach tier 3');
     for (var m = 0; m < maxed.length; m++) {
       if (m) {
         var chev = el('Panel', order, 'BBChevron');
@@ -1061,7 +1114,7 @@
       // The slot moves when the order changes; the plate inside grows on hover.
       var maxSlot = el('Panel', order, 'BBMaxSlot');
       var plate = abilityIcon(maxSlot, 'BBMaxIcon', ab2);
-      tooltip(plate, (maxed[m] + 1) + '. ' + ab2[1]);
+      tooltip(plate, ab2[1]);
       if (oldMax) {
         var from = changes.base.hero === state.heroId ? oldMax.indexOf(maxed[m]) : -1;
         if (from < 0) emerge(maxSlot);
@@ -1165,7 +1218,7 @@
   function smallItem(parent, id, cls, tip) {
     var it = BB_DATA.items[id];
     if (!it) return null;
-    var icon = image(parent, cls + ' ' + (SLOT_CLASS[it[2]] || '') + ' BBT' + (it[3] || 1), it[4]);
+    var icon = image(parent, cls + ' ' + (SLOT_CLASS[it[2]] || '') + ' BBT' + (it[3] || 1) + ' BBWear' + wearOf(id), it[4]);
     tooltip(icon, it[0] + (tip ? '\n' + tip : ''));
     return icon;
   }
@@ -1178,7 +1231,7 @@
     var bar = el('Panel', parent, 'BBPager');
     var first = page * per + 1, last = Math.min(total, (page + 1) * per);
     el('Label', bar, 'BBPagerLabel', first + '\u2013' + last + ' of ' + total);
-    var prev = el('Button', bar, 'BBPagerArrow BBPagerPrev' + (page === 0 ? ' Disabled' : ''));
+    var prev = el('Panel', bar, 'BBPagerArrow BBPagerPrev' + (page === 0 ? ' Disabled' : ''));
     el('Panel', prev, 'BBPagerChevron');
     tooltip(prev, tips[0]);
     // The page turns just after the click: the render rebuilds the pager, the clicked button included.
@@ -1186,12 +1239,12 @@
     onClick(prev, function () { if (page > 0) turn(page - 1); });
     for (var p = 0; p < pages; p++) {
       (function (target) {
-        var dotBtn = el('Button', bar, 'BBPagerDot' + (target === page ? ' Active' : ''));
+        var dotBtn = el('Panel', bar, 'BBPagerDot' + (target === page ? ' Active' : ''));
         el('Panel', dotBtn, 'BBPagerDotMark');
         onClick(dotBtn, function () { if (target !== page) turn(target); });
       })(p);
     }
-    var next = el('Button', bar, 'BBPagerArrow BBPagerNext' + (page >= pages - 1 ? ' Disabled' : ''));
+    var next = el('Panel', bar, 'BBPagerArrow BBPagerNext' + (page >= pages - 1 ? ' Disabled' : ''));
     el('Panel', next, 'BBPagerChevron');
     tooltip(next, tips[1]);
     onClick(next, function () { if (page < pages - 1) turn(page + 1); });
@@ -1407,7 +1460,7 @@
       if (row.date) statSlot('cal', row.date, 'Last updated').build(stats, was.date);
       if (b.id) {
         var pinned = b.source === 'pinned';
-        var pinBtn = el('Button', opt, 'BBPinButton' + (pinned ? ' On' : ''));
+        var pinBtn = el('Panel', opt, 'BBPinButton' + (pinned ? ' On' : ''));
         pinGlyph(pinBtn);
         onClick(pinBtn, function () { togglePin(b); });
       }
@@ -1540,19 +1593,22 @@
     if (!state.heroId) el('Label', body, 'BBEmpty', "Couldn't detect your hero. Pick one:");
     // Explicit fixed-height rows: in-game, right-wrap stacked the tall tiles on top of each other.
     var grid = el('Panel', body, 'BBPicker');
-    var perRow = Math.max(1, Math.floor(lineWidth() / (BB_SETTINGS.compact ? 79 : 89)));
+    // Seven to a row; the tiles share the row's width, and the last row is padded so its tiles keep the same size.
+    var perRow = 7;
     var row = null, tiles = [];
     HERO_IDS.slice().sort(function (a, b) { return BB_DATA.heroes[a].name < BB_DATA.heroes[b].name ? -1 : 1; }).forEach(function (id, n) {
       var hero = BB_DATA.heroes[id];
       if (n % perRow === 0) row = el('Panel', grid, 'BBPickRow');
       var btn = el('Button', row, 'BBPick' + (id === state.heroId ? ' Active' : ''));
       tiles.push(btn);
-      image(btn, 'BBPickIcon', hero.img);
+      // The portrait in a holder, cut by the shop's rough-edge mask (a cut-out, so nothing laid over it).
+      var face = el('Panel', btn, 'BBPickFace');
+      image(face, 'BBPickIcon BBWear' + wearOf(id), hero.img);
       // Drop stroke: a white copy of the name sits behind it, a little down and to the right. It lights up on hover
       // and for the current hero; the name in front keeps its colour.
       var nameStack = el('Panel', btn, 'BBNameStack');
       if (hero.nameArt && hero.nameAspect) {
-        var artMaxW = BB_SETTINGS.compact ? 68 : 80;
+        var artMaxW = BB_SETTINGS.compact ? 50 : 64;
         setStyle(nameArt(nameStack, 'BBPickArt BBDropCopy', hero, 16, 24, artMaxW), 'washColor', '#ffffff');
         nameArt(nameStack, 'BBPickArt', hero, 16, 24, artMaxW);
       } else {
@@ -1561,6 +1617,9 @@
       }
       onClick(btn, function () { state.manualHeroId = id; state.picking = false; state.heroId = ''; refreshHero(true); render(); });
     });
+    for (var pad = tiles.length % perRow ? perRow - tiles.length % perRow : 0; pad > 0; pad--) {
+      el('Panel', row, 'BBPick BBPickSpacer').hittest = false;
+    }
     if (slide) slideIn(tiles, perRow);
   }
 
@@ -1572,6 +1631,49 @@
     state.renderedKey = key;
     beginChanges();
     try { renderView(); } finally { endChanges(); }
+    styleScrollbars();
+  }
+
+  // ---------- scrollbars ----------
+  // In-game the game's own scrollbar rules (dark track, grey thumb with a light top / dark right border) kept winning
+  // over our stylesheet, so the body's and build list's scrollbars are styled from script: inline styles beat every
+  // stylesheet rule. Track and thumb both fade out toward their ends; the thumb glows beige while the mouse is on the bar.
+  var SCROLL_TRACK = 'gradient( linear, 0% 0%, 0% 100%, from( #ffffff00 ), color-stop( 0.18, #ffffff0a ), color-stop( 0.82, #ffffff0a ), to( #ffffff00 ) )';
+  var SCROLL_THUMB = 'gradient( linear, 0% 0%, 0% 100%, from( #cbbca600 ), color-stop( 0.22, #cbbca666 ), color-stop( 0.78, #cbbca666 ), to( #cbbca600 ) )';
+  var SCROLL_GLOW = 'gradient( linear, 0% 0%, 0% 100%, from( #e9dcc600 ), color-stop( 0.22, #e9dcc6d9 ), color-stop( 0.78, #e9dcc6d9 ), to( #e9dcc600 ) )';
+  var scrollLogged = false;
+  function thumbLook(thumb, lit) {
+    setStyle(thumb, 'backgroundColor', lit ? SCROLL_GLOW : SCROLL_THUMB);
+    setStyle(thumb, 'boxShadow', lit ? '#e3d3b640 0px 0px 6px 0px' : 'none');
+  }
+  // A panel's scrollbar only exists once its content overflows; each new one is styled once (marked by a class).
+  function styleScrollbar(scroller) {
+    var bar = find(scroller, 'VerticalScrollBar');
+    if (!valid(bar) || has(bar, 'BBScrollStyled')) return;
+    var thumb = null;
+    try { bar.Children().forEach(function (c) { if (!thumb && has(c, 'ScrollThumb')) thumb = c; }); } catch (e) {}
+    bar.AddClass('BBScrollStyled');
+    setStyle(bar, 'width', '6px');
+    setStyle(bar, 'marginRight', '4px');
+    setStyle(bar, 'borderRadius', '3px');
+    setStyle(bar, 'backgroundColor', SCROLL_TRACK);
+    setStyle(bar, 'boxShadow', 'none');
+    if (thumb) {
+      setStyle(thumb, 'width', '6px');
+      setStyle(thumb, 'borderRadius', '3px');
+      setStyle(thumb, 'borderTop', '0px solid #00000000');
+      setStyle(thumb, 'borderRight', '0px solid #00000000');
+      thumbLook(thumb, false);
+      bar.SetPanelEvent('onmouseover', function () { if (valid(thumb)) thumbLook(thumb, true); });
+      bar.SetPanelEvent('onmouseout', function () { if (valid(thumb)) thumbLook(thumb, false); });
+    }
+    if (!scrollLogged) { scrollLogged = true; log('scrollbar styled' + (thumb ? '' : ' (no thumb found)')); }
+  }
+  // Looked for just after layout, and again once a dropdown has finished easing open.
+  function styleScrollbars() {
+    var run = function () { styleScrollbar(ui.body); styleScrollbar(ui.buildMenu); };
+    $.Schedule(0.05, run);
+    $.Schedule(FOLD_S + 0.1, run);
   }
 
   function renderView() {
@@ -1631,20 +1733,17 @@
     ui.buildPin.SetHasClass('BBHidden', b.source !== 'pinned');
     setMeta(sourceNote(b));
 
-    // Community and Pro both follow the chosen build's own ability order (the win-rate order if it has none),
-    // headed by the build's favourites and last-updated date.
-    if (b.steps.length) {
-      var order = el('Panel', ui.body, 'BBSection');
-      var orderHead = el('Panel', order, 'BBSectionHead');
-      var slots = {};
-      if (b.favs) slots.a = statSlot('favs', thousands(b.favs), 'Favourites');
-      if (b.updated && b.source !== 'pro-stats') slots.b = statSlot('cal', shortDate(b.updated), 'Last updated');
-      if (!slots.a && !slots.b) slots.a = labelSlot('title', 'BBSectionTitle', 'ABILITY ORDER');
-      headSlots(orderHead, slots);
-      renderSkills(order, h, b.steps);
-    } else {
-      renderWinrateSkills(h);
-    }
+    // Community and Pro both follow the chosen build's own ability order, headed by the build's favourites and
+    // last-updated date. A build without an ability order shows the win-rate one under that same heading (the rank
+    // dropdown belongs to Top WR only).
+    var order = el('Panel', ui.body, 'BBSection');
+    var orderHead = el('Panel', order, 'BBSectionHead');
+    var slots = {};
+    if (b.favs) slots.a = statSlot('favs', thousands(b.favs), 'Favourites');
+    if (b.updated && b.source !== 'pro-stats') slots.b = statSlot('cal', shortDate(b.updated), 'Last updated');
+    if (!slots.a && !slots.b) slots.a = labelSlot('title', 'BBSectionTitle', 'ABILITY ORDER');
+    headSlots(orderHead, slots);
+    renderSkills(order, h, b.steps.length ? b.steps : winrateData(h).steps);
     renderBuildItems(section(ui.body, b.source === 'pro-stats' ? 'MOST BOUGHT BY TIER' : 'ITEMS'), b);
     if (b.desc) el('Label', section(ui.body, "AUTHOR'S NOTES"), 'BBNotes', b.desc);
     if (state.source === 'pro') renderRecentMatches(h);
@@ -1653,7 +1752,8 @@
   // ---------- construction ----------
   // A round header button with an icon from the game's own art (or a text fallback).
   function iconButton(parent, cls, icon, fallback, tip) {
-    var btn = el('Button', parent, 'BBIconButton ' + cls);
+    var wear = { BBTrackButton: 1, BBCogButton: 2 }[cls] || 3;
+    var btn = el('Button', parent, 'BBIconButton ' + cls + ' BBWear' + wear);
     if (icon) image(btn, 'BBIconImg', icon);
     else el('Label', btn, 'BBIconText', fallback);
     controlTip(btn, tip);
@@ -1682,7 +1782,12 @@
     var frame = el('Panel', ui.root, 'BBFrame');
     if (onLeft) el('Panel', ui.root, 'BBTail BBTailRight');
 
-    var header = el('Panel', frame, 'BBHeader');
+    // Paper creases and light scuffs first, so the portrait, names and buttons sit on top of them. The header has no
+    // padding of its own (in-game, full-size layers only cover a panel's area inside its padding); the row inside it
+    // holds the padding and everything else, and is also what you drag the bubble by.
+    var headerBox = el('Panel', frame, 'BBHeader');
+    el('Panel', headerBox, 'BBCrease').hittest = false;
+    var header = el('Panel', headerBox, 'BBHeaderRow');
     header.SetPanelEvent('onmouseover', function () { drag.overHeader = true; if (!drag.native) watchDrag(); });
     header.SetPanelEvent('onmouseout', function () { drag.overHeader = false; });
     onClick(header, toggleMove);
@@ -1757,26 +1862,33 @@
     });
     ui.cogBtn = iconButton(header, 'BBCogButton', ICONS.gear, '⚙', '');
     onClick(ui.cogBtn, function () { state.settingsOpen = !state.settingsOpen; state.menuOpen = false; render(); });
-    var close = ui.closeBtn = el('Button', header, 'BBClose');
+    var close = ui.closeBtn = el('Button', header, 'BBClose BBWear3');
     el('Panel', close, 'BBCloseBar BBCloseBarA');
     el('Panel', close, 'BBCloseBar BBCloseBarB');
-    controlTip(close, 'Close  (' + hotkeyLabel(BB_SETTINGS.hotkey) + ')');
+    controlTip(close, '');
     onClick(close, toggle);
+    // Grime over the header, like the shop's tabs (on top, but it lets the mouse through).
 
     ui.settings = el('Panel', frame, 'BBSettings BBHidden');
     ui.buildMenu = el('Panel', frame, 'BBBuildMenu BBHidden');
 
     var tabs = el('Panel', frame, 'BBTabs');
+    el('Panel', tabs, 'BBCrease').hittest = false;   // under the tabs
     ui.tabs = {};
     SOURCES.forEach(function (src) {
       var tab = el('Button', tabs, 'BBTab');
+      // Light scuffs on each tab (under the label).
+      el('Panel', tab, 'BBCardScuff BBTabScuff BBScuff' + (1 + SOURCES.indexOf(src) % 3)).hittest = false;
       el('Label', tab, 'BBTabText', SOURCE_LABEL[src]);
       onClick(tab, function () { switchTab(src); });
       ui.tabs[src] = tab;
     });
 
     ui.meta = el('Label', frame, 'BBMeta BBHidden', '');
-    ui.body = el('Panel', frame, 'BBBody');
+    // The body sits on a faint copy of the shop's worn builds page, behind its scrolling content.
+    var bodyWrap = el('Panel', frame, 'BBBodyWrap');
+    el('Panel', bodyWrap, 'BBPaperPage').hittest = false;
+    ui.body = el('Panel', bodyWrap, 'BBBody');
   }
 
   // Hotkeys the cog menu offers. Panorama can't unbind a key, so each key is bound the first time it is
@@ -1808,7 +1920,6 @@
     if (typed) { if (!fallbackKey) fallbackKey = BB_SETTINGS.hotkey; } else fallbackKey = null;
     BB_SETTINGS.hotkey = key;
     bindKey(key);
-    if (ui.closeBtn) controlTip(ui.closeBtn, 'Close  (' + hotkeyLabel(key) + ')');
     if (!typed) savePrefs();
   }
   // Typed hotkeys: "H", "f7", "Home", "key_pgup" -> Panorama key names (key_h, key_f7, key_home, key_pgup).

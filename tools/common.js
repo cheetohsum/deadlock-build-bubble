@@ -22,6 +22,8 @@ const DEFAULT_CONFIG = {
   proLeaderboardDepth: 300,       // top N leaderboard entries per region counted as "pro"
   minItemMatches: 150,
   minAbilityOrderMatches: 40,
+  maxBuilds: 18,                  // most builds per hero on the COMMUNITY and PRO tabs (the build menu pages them six at a time)
+  maxProMatches: 15,              // most recent pro matches per hero (five to a page)
   pinnedBuilds: {},               // { "<heroId>": <hero_build_id> } overrides the standard build
   apiKey: '',                     // optional deadlock-api key (X-API-KEY) for higher rate limits; env DEADLOCK_API_KEY also works
 };
